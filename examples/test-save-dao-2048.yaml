@@ -7,11 +7,11 @@ source:
     #   username: [USERNAME]
     #   password: [PASSWORD]
     ## Container registry authentication
-  # containers:
-  #   auth:
-  #     registry: [URL] # i.e my.harbor.io
-  #     username: [USERNAME]
-  #     password: [PASSWORD]
+  containers:
+    auth:
+      registry: "release-ci.daocloud.io"
+      username: "admin"
+      password: "x3OFzuW0tpGYFDAr63wRx81dqms="
 target:
   # The important bit. This instructs charts-syncer to store intermediate bundles in the given directory
   intermediateBundlesPath: charts-dir
@@ -20,5 +20,3 @@ charts:
   - name: dao-2048
     versions:
       - 1.2.1
-      - 1.2.2
-  - name: dao-2048-bak

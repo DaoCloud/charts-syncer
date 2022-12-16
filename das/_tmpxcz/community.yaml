@@ -1,0 +1,10 @@
+source:
+    repo:
+        kind: HARBOR
+        url: https://release.daocloud.io/chartrepo/community
+target:
+    intermediateBundlesPath: data/community
+charts:
+  - name: node-problem-detector
+    versions:
+      - 2.3.1

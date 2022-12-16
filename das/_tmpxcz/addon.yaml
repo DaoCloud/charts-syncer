@@ -1,0 +1,10 @@
+source:
+    repo:
+        kind: HARBOR
+        url: https://release.daocloud.io/chartrepo/addon
+target:
+    intermediateBundlesPath: data/addon
+charts:
+  - name: metrics-server
+    versions:
+      - 3.8.3
