@@ -9,9 +9,24 @@ jobs:
   release:
     runs-on: ubuntu-latest
 
+#    name: Build on ${{ matrix.distro }} ${{ matrix.arch }}
+#
+#    # Run steps on a matrix of 4 arch/distro combinations
+#    strategy:
+#      matrix:
+#        include:
+#          - arch: aarch64
+#            distro: ubuntu-latest
+#          - arch: amd64
+#            distro: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: 'amd64,arm64,arm'
       - name: Unshallow
         run: git fetch --prune --unshallow
       - name: Docker login to registry
@@ -23,7 +38,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v1
         with:
-          go-version: 1.17.x
+          go-version: 1.19.x
       - name: Release
         uses: goreleaser/goreleaser-action@v2
         with:
