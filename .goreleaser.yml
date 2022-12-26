@@ -7,20 +7,55 @@ builds:
       - CGO_ENABLED=0
       - GO111MODULE=on
     main: ./main.go
+    goos:
+      - linux
+    goarch:
+      - arm64
+      - amd64
     binary: charts-syncer
     ldflags:
       - -X github.com/bitnami-labs/charts-syncer/cmd.version={{.Version}}
+    overrides:
+      - goos: linux
+        goarch: amd64
+        goamd64: v1
+        goarm: ""
+        gomips: ""
+        env:
+          - CGO_ENABLED=0
+          - GO111MODULE=on
 dockers:
-  -
+  - use: buildx
     ids:
       - release
+    goos: linux
+    goarch: amd64
     dockerfile: Dockerfile
     image_templates:
-      - "release.daocloud.io/charts-syncer/charts-syncer:{{ .Tag }}"
-      - "release.daocloud.io/charts-syncer/charts-syncer:latest"
+      - "release.daocloud.io/charts-syncer/charts-syncer:{{ .Tag }}-amd64"
     build_flag_templates:
+      - --pull
+      - --platform=linux/amd64
       - "--build-arg"
       - "IMAGE_VERSION={{ .Tag }}"
+  - use: buildx
+    ids:
+       - release
+    goos: linux
+    goarch: arm64
+    dockerfile: Dockerfile
+    image_templates:
+      - "release.daocloud.io/charts-syncer/charts-syncer:{{ .Tag }}-arm64"
+    build_flag_templates:
+      - --pull
+      - --platform=linux/arm64
+      - "--build-arg"
+      - "IMAGE_VERSION={{ .Tag }}"
+docker_manifests:
+  - name_template: release.daocloud.io/charts-syncer/charts-syncer:{{ .Tag }}
+    image_templates:
+      - release.daocloud.io/charts-syncer/charts-syncer:{{ .Tag }}-amd64
+      - release.daocloud.io/charts-syncer/charts-syncer:{{ .Tag }}-arm64
 archives:
   - replacements:
       386: i386
