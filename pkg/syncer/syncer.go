@@ -1,7 +1,6 @@
 package syncer
 
 import (
-	"net/url"
 	"os"
 
 	"github.com/bitnami-labs/charts-syncer/api"
@@ -168,15 +167,10 @@ func New(source *api.Source, target *api.Target, opts ...Option) (*Syncer, error
 				return nil, errors.New("use auto-create-repository must specify containerPrefixRegistry or containerRegistry")
 			}
 
-			_, err := url.Parse(registry)
-			if err != nil {
-				return nil, errors.Trace(err)
-			}
-
 			r := &api.Containers{}
 			if target.Containers != nil && target.Containers.Auth != nil {
 				r.Auth = &api.Containers_ContainerAuth{
-					Registry: registry,
+					Registry: target.Containers.Auth.GetRegistry(),
 					Username: target.Containers.Auth.GetUsername(),
 					Password: target.Containers.Auth.GetPassword(),
 				}
