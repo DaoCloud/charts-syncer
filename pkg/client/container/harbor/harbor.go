@@ -23,9 +23,8 @@ type Container struct {
 
 // New creates a Repo object from an api.Repo object.
 func New(registry string, containers *api.Containers, insecure bool) (*Container, error) {
-	auth := containers.GetAuth()
-	if auth == nil {
-		registry = auth.GetRegistry()
+	if registry == "" && containers.GetAuth() != nil {
+		registry = containers.GetAuth().GetRegistry()
 	}
 
 	u := url.URL{Host: registry}
@@ -44,7 +43,7 @@ func New(registry string, containers *api.Containers, insecure bool) (*Container
 	}
 
 	c := Container{url: &u, insecure: insecure}
-	if auth != nil {
+	if auth := containers.GetAuth(); auth != nil {
 		c.username = auth.GetUsername()
 		c.password = auth.GetPassword()
 	}
