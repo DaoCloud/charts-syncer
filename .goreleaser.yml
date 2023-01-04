@@ -7,8 +7,6 @@ builds:
       - CGO_ENABLED=0
       - GO111MODULE=on
     main: ./main.go
-    goos:
-      - linux
     goarch:
       - arm64
       - amd64
