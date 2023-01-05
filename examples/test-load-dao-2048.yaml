@@ -2,8 +2,8 @@ source:
   intermediateBundlesPath: charts-dir
 target:
   containerRegistry: release-ci.daocloud.io
-  containerPrefixRegistry: release-ci.daocloud.io
-  containerRepository: charts-syncer
+# containerPrefixRegistry: release-ci.daocloud.io
+  containerRepository: charts-syncer-auto
   repo:
     kind: HARBOR # or as any other supported Helm Chart repository kinds
     url: https://release-ci.daocloud.io/chartrepo/charts-syncer-auto

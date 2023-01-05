@@ -20,19 +20,28 @@ type ContainerRegistryInterface interface {
 	Pull(imageReference name.Reference) (v1.Image, string, error)
 	Push(image v1.Image, dest name.Reference) error
 	WithInsecure(insecure bool)
+	WithPlatform(platform v1.Platform)
 }
 
 type ContainerRegistryClient struct {
 	auth     authn.Keychain
 	insecure bool
+	platform v1.Platform
 }
 
 func NewContainerRegistryClient(auth authn.Keychain) *ContainerRegistryClient {
-	return &ContainerRegistryClient{auth: auth}
+	return &ContainerRegistryClient{auth: auth, platform: v1.Platform{
+		Architecture: "amd64",
+		OS:           "linux",
+	}}
 }
 
 func (i *ContainerRegistryClient) WithInsecure(insecure bool) {
 	i.insecure = insecure
+}
+
+func (i *ContainerRegistryClient) WithPlatform(platform v1.Platform) {
+	i.platform = platform
 }
 
 func (i *ContainerRegistryClient) Pull(imageReference name.Reference) (v1.Image, string, error) {
@@ -41,7 +50,7 @@ func (i *ContainerRegistryClient) Pull(imageReference name.Reference) (v1.Image,
 		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	}
 
-	image, err := remote.Image(imageReference, remote.WithAuthFromKeychain(i.auth), remote.WithTransport(transport))
+	image, err := remote.Image(imageReference, remote.WithAuthFromKeychain(i.auth), remote.WithTransport(transport), remote.WithPlatform(i.platform))
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to pull image %s: %w", imageReference.Name(), err)
 	}

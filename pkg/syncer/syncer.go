@@ -1,7 +1,13 @@
 package syncer
 
 import (
+	"fmt"
 	"os"
+	"strings"
+
+	v1 "github.com/google/go-containerregistry/pkg/v1"
+	"github.com/juju/errors"
+	"k8s.io/klog/v2"
 
 	"github.com/bitnami-labs/charts-syncer/api"
 	"github.com/bitnami-labs/charts-syncer/pkg/client"
@@ -9,8 +15,6 @@ import (
 	"github.com/bitnami-labs/charts-syncer/pkg/client/intermediate"
 	"github.com/bitnami-labs/charts-syncer/pkg/client/repo"
 	"github.com/bitnami-labs/charts-syncer/pkg/client/types"
-	"github.com/juju/errors"
-	"k8s.io/klog/v2"
 )
 
 // Clients holds the source and target chart repo clients
@@ -37,6 +41,7 @@ type Syncer struct {
 	// list of charts to skip
 	skipCharts           []string
 	autoCreateRepository bool
+	platform             v1.Platform
 
 	// TODO(jdrios): Cache index in local filesystem to speed
 	// up re-runs
@@ -210,13 +215,6 @@ func WithSkipCharts(charts []string) Option {
 	}
 }
 
-// WithPrefixRegistry add prefix registry.
-func WithPrefixRegistry(prefixRegistry string) Option {
-	return func(s *Syncer) {
-		s.target.ContainerPrefixRegistry = prefixRegistry
-	}
-}
-
 // WithAutoCreateRepository automatically create charts and images repository if they not exist".
 func WithAutoCreateRepository(autoCreateRepository bool) Option {
 	if autoCreateRepository == true {
@@ -224,6 +222,21 @@ func WithAutoCreateRepository(autoCreateRepository bool) Option {
 	}
 	return func(s *Syncer) {
 		s.autoCreateRepository = autoCreateRepository
+	}
+}
+
+// WithPlatform configures pull image platform
+func WithPlatform(platform string) Option {
+	p := strings.Split(platform, "/")
+	if len(p) != 2 {
+		klog.Exit(fmt.Sprintf("platform parameter %s is invalid", platform))
+	}
+
+	return func(s *Syncer) {
+		s.platform = v1.Platform{
+			Architecture: p[1],
+			OS:           p[0],
+		}
 	}
 }
 
