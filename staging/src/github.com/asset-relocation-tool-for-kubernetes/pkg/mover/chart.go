@@ -152,6 +152,7 @@ type ChartMover struct {
 	// test/fixtures/testchart.images.yaml
 	rawHints []byte
 	Insecure bool
+	platform v1.Platform
 }
 
 // NewChartMover creates a ChartMover to relocate a chart following the given
@@ -759,6 +760,15 @@ func WithInsecure(insecure bool) Option {
 func WithLogger(l Logger) Option {
 	return func(c *ChartMover) {
 		c.logger = l
+	}
+}
+
+func WithPlatform(platform v1.Platform) Option {
+	return func(c *ChartMover) {
+		if len(platform.Architecture) > 0 && len(platform.OS) > 0 {
+			c.platform = platform
+			c.sourceContainerRegistry.WithPlatform(platform)
+		}
 	}
 }
 
