@@ -11,15 +11,16 @@ import (
 	"path/filepath"
 	"regexp"
 
-	"github.com/google/go-containerregistry/pkg/authn"
-
 	"github.com/avast/retry-go"
+	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
-	"github.com/vmware-tanzu/asset-relocation-tool-for-kubernetes/internal"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/chartutil"
+
+	"github.com/vmware-tanzu/asset-relocation-tool-for-kubernetes/internal"
+	"github.com/vmware-tanzu/asset-relocation-tool-for-kubernetes/pkg/util/cmduitl"
 )
 
 const (
@@ -691,7 +692,7 @@ func saveChart(chart *chart.Chart, toChartFilename string) error {
 		return err
 	}
 
-	err = os.Rename(filename, toChartFilename)
+	err = cmduitl.Move(filename, toChartFilename)
 	if err != nil {
 		return err
 	}

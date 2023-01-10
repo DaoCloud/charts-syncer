@@ -12,14 +12,14 @@ import (
 	"path/filepath"
 	"testing"
 
-	"helm.sh/helm/v3/pkg/chart"
-
-	"helm.sh/helm/v3/pkg/chartutil"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/vmware-tanzu/asset-relocation-tool-for-kubernetes/internal"
+	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
+	"helm.sh/helm/v3/pkg/chartutil"
+
+	"github.com/vmware-tanzu/asset-relocation-tool-for-kubernetes/internal"
+	"github.com/vmware-tanzu/asset-relocation-tool-for-kubernetes/pkg/util/cmduitl"
 )
 
 var _ = Describe("RewriteAction", func() {
@@ -174,7 +174,7 @@ func TestApply(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if err := os.Rename(gotChartPath, wantChartPath); err != nil {
+		if err := cmduitl.Move(gotChartPath, wantChartPath); err != nil {
 			t.Fatal(err)
 		}
 	}
