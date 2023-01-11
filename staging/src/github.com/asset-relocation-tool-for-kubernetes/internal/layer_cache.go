@@ -12,6 +12,8 @@ import (
 	"path/filepath"
 
 	v1 "github.com/google/go-containerregistry/pkg/v1"
+
+	"github.com/vmware-tanzu/asset-relocation-tool-for-kubernetes/pkg/util/cmduitl"
 )
 
 // cachedImage wraps a remote image with a local layer cache at dir
@@ -203,7 +205,7 @@ func (tld *teeLayerDump) createCachedLayerFile() error {
 	}
 	tmpName := tld.f.Name()
 	cachedPath := cachedLayerPath(tld.layer.dir, digest, tld.compressed)
-	if err := os.Rename(tmpName, cachedPath); err != nil {
+	if err := cmduitl.Move(tmpName, cachedPath); err != nil {
 		return fmt.Errorf("failed to rename cached layer file: %w", err)
 	}
 	tld.done = true

@@ -10,13 +10,14 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/vmware-tanzu/asset-relocation-tool-for-kubernetes/test"
-	"helm.sh/helm/v3/pkg/chart/loader"
-
 	. "github.com/bunniesandbeatings/goerkin"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gbytes"
+	"helm.sh/helm/v3/pkg/chart/loader"
+
+	"github.com/vmware-tanzu/asset-relocation-tool-for-kubernetes/pkg/util/cmduitl"
+	"github.com/vmware-tanzu/asset-relocation-tool-for-kubernetes/test"
 )
 
 func saveCacheFolder() string {
@@ -130,7 +131,7 @@ var _ = Describe("External tests", func() {
 			homeDir, err := os.UserHomeDir()
 			Expect(err).ToNot(HaveOccurred())
 
-			err = os.Rename(
+			err = cmduitl.Move(
 				filepath.Join(homeDir, ".docker", "config.json"),
 				filepath.Join(homeDir, ".docker", "totally-not-the-config.json.backup"),
 			)
@@ -143,7 +144,7 @@ var _ = Describe("External tests", func() {
 			if !os.IsNotExist(err) {
 				Expect(err).ToNot(HaveOccurred())
 
-				err = os.Rename(
+				err = cmduitl.Move(
 					filepath.Join(homeDir, ".docker", "totally-not-the-config.json.backup"),
 					filepath.Join(homeDir, ".docker", "config.json"),
 				)

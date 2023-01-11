@@ -14,8 +14,10 @@ import (
 	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/tarball"
-	"github.com/vmware-tanzu/asset-relocation-tool-for-kubernetes/internal"
 	"helm.sh/helm/v3/pkg/chart"
+
+	"github.com/vmware-tanzu/asset-relocation-tool-for-kubernetes/internal"
+	"github.com/vmware-tanzu/asset-relocation-tool-for-kubernetes/pkg/util/cmduitl"
 )
 
 var (
@@ -49,7 +51,7 @@ func saveIntermediateBundle(bcd *bundledChartData, tarFile string, log Logger) e
 		return err
 	}
 	// TODO(josvaz): check if this may fail across different mounts
-	if err := os.Rename(tmpTarballFilename, tarFile); err != nil {
+	if err := cmduitl.Move(tmpTarballFilename, tarFile); err != nil {
 		return fmt.Errorf("failed renaming %s -> %s: %w", tmpTarballFilename, tarFile, err)
 	}
 	log.Printf("Intermediate bundle complete at %s\n", tarFile)
