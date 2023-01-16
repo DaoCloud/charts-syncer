@@ -32,11 +32,20 @@ func (s *Syncer) SyncPendingCharts(chs ...*api.Charts) error {
 	// them instead of blocking the whole sync.
 	err := s.loadCharts(chs...)
 	if err != nil {
-		klog.Warningf("There were some problems loading the information of the requested charts: %v", err)
-		errs = multierror.Append(errs, errors.Trace(err))
+		if s.verify {
+			return err
+		} else {
+			klog.Warningf("There were some problems loading the information of the requested charts: %v", err)
+			errs = multierror.Append(errs, errors.Trace(err))
+		}
 	}
-	// NOTE: We are not checking `errs` in purpose. See the comment above.
 
+	if s.verify {
+		fmt.Println("verify success!")
+		return nil
+	}
+
+	// NOTE: We are not checking `errs` in purpose. See the comment above.
 	charts, err := s.topologicalSortCharts()
 	if err != nil {
 		return errors.Trace(err)

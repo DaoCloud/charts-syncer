@@ -3,6 +3,7 @@ package syncer
 import (
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/Masterminds/semver/v3"
@@ -67,6 +68,7 @@ func (i ChartIndex) Get(id string) *Chart {
 
 // loadCharts loads the charts map into the index from the source repo
 func (s *Syncer) loadCharts(charts ...*api.Charts) error {
+	specifiedCharts := false
 	if len(charts) == 0 {
 		if !s.autoDiscovery {
 			return errors.Errorf("unable to discover charts to sync")
@@ -76,14 +78,15 @@ func (s *Syncer) loadCharts(charts ...*api.Charts) error {
 			return errors.Trace(err)
 		}
 		if len(srcCharts) == 0 {
-			return errors.Errorf("not found charts to sync")
+			return errors.Errorf("not found charts in %s to sync", s.source.GetRepo().Url)
 		}
 
 		for _, name := range srcCharts {
 			charts = append(charts, &api.Charts{Name: name})
 		}
+	} else {
+		specifiedCharts = true
 	}
-
 	// Sort chart names
 	sort.Slice(charts, func(i, j int) bool {
 		return charts[i].Name > charts[j].Name
@@ -113,6 +116,26 @@ func (s *Syncer) loadCharts(charts ...*api.Charts) error {
 		if err != nil {
 			errs = multierror.Append(errs, errors.Trace(err))
 			continue
+		}
+
+		if specifiedCharts && s.verify {
+			source := s.source.GetIntermediateBundlesPath()
+			if len(source) == 0 {
+				source = s.source.GetRepo().Url
+			}
+
+			if len(versions) == 0 {
+				return errors.Trace(fmt.Errorf("chart %s in %s does not exist", chart.Name, source))
+			}
+
+			if ver, ok := verifyChartsVersion(chart.Versions, versions); !ok {
+				if len(ver) > 1 {
+					return errors.Trace(fmt.Errorf("versions %s of chart %s in %s do not exist", strings.Join(ver, ","), chart.Name, source))
+				} else {
+					return errors.Trace(fmt.Errorf("version %s of chart %s in %s does not exist", strings.Join(ver, ","), chart.Name, source))
+				}
+			}
+			return nil
 		}
 
 		klog.V(5).Infof("Found %d versions for %q chart: %v", len(versions), chart.Name, versions)
@@ -302,4 +325,19 @@ func shouldSkipChartVersion(chartVersion string, Versions []string) bool {
 		}
 	}
 	return true
+}
+
+func verifyChartsVersion(specifiedVersions, chartVersions []string) ([]string, bool) {
+	tmpVersions := make(map[string]struct{}, len(chartVersions))
+	for _, version := range chartVersions {
+		tmpVersions[version] = struct{}{}
+	}
+
+	var versions []string
+	for _, version := range specifiedVersions {
+		if _, ok := tmpVersions[version]; !ok {
+			versions = append(versions, version)
+		}
+	}
+	return versions, len(versions) == 0
 }

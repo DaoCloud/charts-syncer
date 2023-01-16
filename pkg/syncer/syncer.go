@@ -42,6 +42,7 @@ type Syncer struct {
 	skipCharts           []string
 	autoCreateRepository bool
 	platform             v1.Platform
+	verify               bool
 
 	// TODO(jdrios): Cache index in local filesystem to speed
 	// up re-runs
@@ -237,6 +238,13 @@ func WithPlatform(platform string) Option {
 			Architecture: p[1],
 			OS:           p[0],
 		}
+	}
+}
+
+// WithVerify Verify the existence of the chart in the configuration
+func WithVerify(verify bool) Option {
+	return func(s *Syncer) {
+		s.verify = verify
 	}
 }
 
