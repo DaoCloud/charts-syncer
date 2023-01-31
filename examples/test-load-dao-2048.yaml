@@ -7,11 +7,11 @@ target:
   repo:
     kind: HARBOR # or as any other supported Helm Chart repository kinds
     url: https://release-ci.daocloud.io/chartrepo/charts-syncer-auto
-    auth:
-      username: "admin"
-      password: "x3OFzuW0tpGYFDAr63wRx81dqms="
-  ## Container registry authentication
-  containers:
-    auth:
-      username: "admin"
-      password: "x3OFzuW0tpGYFDAr63wRx81dqms="
+#    auth:
+#      username: [USERNAME]
+#      password: [PASSWORD]
+#  ## Container registry authentication
+#  containers:
+#    auth:
+#      username: [USERNAME]
+#      password: [PASSWORD]
