@@ -19,6 +19,7 @@ var (
 	syncLatestVersionOnly bool
 	autoCreateRepository  bool
 	platform              string
+	verify                bool
 )
 
 var (
@@ -94,6 +95,7 @@ func newSyncCmd() *cobra.Command {
 				syncer.WithLatestVersionOnly(syncLatestVersionOnly),
 				syncer.WithSkipCharts(c.SkipCharts),
 				syncer.WithAutoCreateRepository(autoCreateRepository),
+				syncer.WithVerify(verify),
 			}
 			if len(platform) > 0 {
 				syncerOptions = append(syncerOptions, syncer.WithPlatform(platform))
@@ -112,7 +114,8 @@ func newSyncCmd() *cobra.Command {
 	cmd.Flags().StringVar(&syncWorkdir, "workdir", syncer.DefaultWorkdir(), "Working directory")
 	cmd.Flags().BoolVar(&syncSkipDependencies, "skip-dependencies", false, "Skip syncing chart dependencies")
 	cmd.Flags().BoolVar(&syncLatestVersionOnly, "latest-version-only", false, "Sync only latest version of each chart")
-	cmd.Flags().BoolVar(&autoCreateRepository, "auto-create-repository", false, "automatically create charts and images repositories,only supports harbor")
-	cmd.Flags().StringVar(&platform, "platform", "", "specify pull image platform.For example:linux/amd64")
+	cmd.Flags().BoolVar(&autoCreateRepository, "auto-create-repository", false, "Automatically create charts and images repositories,only supports harbor")
+	cmd.Flags().StringVar(&platform, "platform", "", "Specify pull image platform. example:linux/amd64")
+	cmd.Flags().BoolVar(&verify, "verify", false, "Verify the existence of the chart in the configuration")
 	return cmd
 }

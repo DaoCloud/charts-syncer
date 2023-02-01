@@ -44,7 +44,7 @@ func newGenerateCmd() *cobra.Command {
 	m := api.Manifest{}
 	cmd := &cobra.Command{
 		Use:     "generate",
-		Short:   "Generate charts-syncer config",
+		Short:   "Generate charts-syncer config from addon manifest yaml",
 		Example: syncExample,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			if err := initGenerateConfigFile(); err != nil {
