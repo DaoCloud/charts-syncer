@@ -78,6 +78,9 @@ func (s *Syncer) loadCharts(charts ...*api.Charts) error {
 			return errors.Trace(err)
 		}
 		if len(srcCharts) == 0 {
+			if len(s.source.GetIntermediateBundlesPath()) > 0 {
+				return errors.Errorf("not found charts in %s to sync", s.source.GetIntermediateBundlesPath())
+			}
 			return errors.Errorf("not found charts in %s to sync", s.source.GetRepo().Url)
 		}
 
