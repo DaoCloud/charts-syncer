@@ -4,6 +4,11 @@ GOARCH ?= $(shell go env GOARCH)
 VERSION := $(or $(VERSION), dev)
 LDFLAGS="-X github.com/bitnami-labs/charts-syncer/cmd.version=$(VERSION)"
 
+.PHONY: unit-test
+unit-test:
+	go test -race -coverprofile=coverage.txt -covermode=atomic `go list ./api/... ./cmd/... ./internal/... ./pkg/... ./staging/...`
+	curl -s https://codecov.io/bash | bash
+
 test:
 	GO111MODULE=on go test ./...
 
