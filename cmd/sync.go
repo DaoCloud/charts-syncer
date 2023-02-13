@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/juju/errors"
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
@@ -20,6 +22,7 @@ var (
 	autoCreateRepository  bool
 	platform              string
 	verify                bool
+	printImages           bool
 )
 
 var (
@@ -28,7 +31,10 @@ var (
   charts-syncer sync
 
   # Synchronizes all charts defined in the configuration file from May 1st, 2020
-  charts-syncer sync --from-date 2020-05-01`
+  charts-syncer sync --from-date 2020-05-01
+
+  # Print rendered images list defined in the configuration file
+  charts-syncer sync --print-images`
 )
 
 func initConfigFile() error {
@@ -106,6 +112,18 @@ func newSyncCmd() *cobra.Command {
 				return errors.Trace(err)
 			}
 
+			if printImages {
+				images, err := s.GetRenderedImages(c.Charts...)
+				if err != nil {
+					return errors.Trace(err)
+				}
+				fmt.Println("Print images in charts..")
+				for _, image := range images {
+					fmt.Println(image)
+				}
+				return nil
+			}
+
 			return errors.Trace(s.SyncPendingCharts(c.GetCharts()...))
 		},
 	}
@@ -117,5 +135,6 @@ func newSyncCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&autoCreateRepository, "auto-create-repository", false, "Automatically create charts and images repositories,only supports harbor")
 	cmd.Flags().StringVar(&platform, "platform", "", "Specify pull image platform. example:linux/amd64")
 	cmd.Flags().BoolVar(&verify, "verify", false, "Verify the existence of the chart in the configuration")
+	cmd.Flags().BoolVar(&printImages, "print-images", false, "only print images declared in charts")
 	return cmd
 }

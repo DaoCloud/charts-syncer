@@ -256,6 +256,38 @@ func (s *Syncer) SyncWithChartsSyncer(ch *Chart, id, workdir, outdir string, has
 	return packagedChartPath, nil
 }
 
+func (s *Syncer) GetRenderedImages(chs ...*api.Charts) ([]string, error) {
+	err := s.loadCharts(chs...)
+	if err != nil {
+		return nil, err
+	}
+
+	charts, err := s.topologicalSortCharts()
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	if len(charts) < 1 {
+		return []string{}, nil
+	}
+
+	images := make([]string, 0)
+	for _, ch := range charts {
+		outdir, err := ioutil.TempDir("", "charts-syncer")
+		if err != nil {
+			return nil, err
+		}
+		req, _ := getRelok8sMoveRequest(s.source, s.target, ch, outdir)
+		chartMover, err := mover.NewChartMover(req, mover.WithInsecure(s.insecure), mover.WithPlatform(s.platform))
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
+		for _, imageChange := range chartMover.GetImageChanges() {
+			images = append(images, imageChange.ImageReference.Name())
+		}
+	}
+	return images, nil
+}
+
 func getRelok8sMoveRequest(source *api.Source, target *api.Target, chart *Chart, outdir string) (*mover.ChartMoveRequest, string) {
 	if target.GetIntermediateBundlesPath() != "" {
 		// airgap scenario step 1: SOURCE REPO => Intermediate bundles path
