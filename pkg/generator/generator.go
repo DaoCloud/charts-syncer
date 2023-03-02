@@ -73,8 +73,9 @@ func convertCharts(charts []*api.Charts) []*Charts {
 	c := make([]*Charts, 0, len(charts))
 	for _, chart := range charts {
 		c = append(c, &Charts{
-			Name:     chart.GetName(),
-			Versions: chart.GetVersions(),
+			Name:       chart.GetName(),
+			Versions:   chart.GetVersions(),
+			SkipImages: chart.GetSkipImages(),
 		})
 	}
 	return c
@@ -95,8 +96,9 @@ type Target struct {
 }
 
 type Charts struct {
-	Name     string   `yaml:"name"`
-	Versions []string `yaml:"versions,omitempty"`
+	Name       string   `yaml:"name,omitempty"`
+	Versions   []string `yaml:"versions,omitempty"`
+	SkipImages bool     `yaml:"skipImages,omitempty"`
 }
 
 type Config struct {
