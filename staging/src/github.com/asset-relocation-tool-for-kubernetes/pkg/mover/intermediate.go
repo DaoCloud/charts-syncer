@@ -45,8 +45,8 @@ type bundledChartData struct {
 //
 // The hints file goes first in the tar, followed by the chart files.
 // Finally, images are appended using the go-containerregistry tarball lib
-func saveIntermediateBundle(bcd *bundledChartData, tarFile string, log Logger) error {
-	tmpTarballFilename, err := tarChartData(bcd, log)
+func saveIntermediateBundle(bcd *bundledChartData, tarFile string, skipImages bool, log Logger) error {
+	tmpTarballFilename, err := tarChartData(bcd, skipImages, log)
 	if err != nil {
 		return err
 	}
@@ -58,7 +58,7 @@ func saveIntermediateBundle(bcd *bundledChartData, tarFile string, log Logger) e
 	return nil
 }
 
-func tarChartData(bcd *bundledChartData, log Logger) (string, error) {
+func tarChartData(bcd *bundledChartData, skipImages bool, log Logger) (string, error) {
 	tmpTarball, err := os.CreateTemp("", "intermediate-bundle-tar-*")
 	if err != nil {
 		return "", fmt.Errorf("failed to create temporary tar file: %w", err)
@@ -76,6 +76,10 @@ func tarChartData(bcd *bundledChartData, log Logger) (string, error) {
 	log.Printf("Writing Helm Chart files at %s/...\n", originalChart)
 	if err := tarChart(tfw, bcd.chart); err != nil {
 		return "", fmt.Errorf("failed archiving %s/: %w", originalChart, err)
+	}
+
+	if skipImages {
+		return tmpTarballFilename, nil
 	}
 
 	if err := packImages(tfw, bcd.imageChanges, log); err != nil {

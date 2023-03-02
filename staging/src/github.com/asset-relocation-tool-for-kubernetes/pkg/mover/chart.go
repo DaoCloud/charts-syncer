@@ -151,9 +151,10 @@ type ChartMover struct {
 	intermediateBundle        *intermediateBundle
 	// raw contents of the hints file. Sample:
 	// test/fixtures/testchart.images.yaml
-	rawHints []byte
-	Insecure bool
-	platform v1.Platform
+	rawHints   []byte
+	Insecure   bool
+	platform   v1.Platform
+	skipImages bool
 }
 
 // NewChartMover creates a ChartMover to relocate a chart following the given
@@ -164,12 +165,21 @@ func NewChartMover(req *ChartMoveRequest, opts ...Option) (*ChartMover, error) {
 		retries: DefaultRetries,
 	}
 
-	if err := initializeContainersAuth(req, cm); err != nil {
-		return nil, err
+	// Option overrides
+	for _, opt := range opts {
+		if opt != nil {
+			opt(cm)
+		}
 	}
 
-	if err := validateTarget(&req.Target); err != nil {
-		return nil, err
+	if !cm.skipImages {
+		if err := initializeContainersAuth(req, cm); err != nil {
+			return nil, err
+		}
+
+		if err := validateTarget(&req.Target); err != nil {
+			return nil, err
+		}
 	}
 
 	if err := cm.loadChart(&req.Source); err != nil {
@@ -183,11 +193,8 @@ func NewChartMover(req *ChartMoveRequest, opts ...Option) (*ChartMover, error) {
 			targetOutput(req.Target.Chart.Local.Path, cm.chart.Name(), cm.chart.Metadata.Version)
 	}
 
-	// Option overrides
-	for _, opt := range opts {
-		if opt != nil {
-			opt(cm)
-		}
+	if cm.skipImages {
+		return cm, nil
 	}
 
 	if err := cm.loadImageHints(&req.Source); err != nil {
@@ -460,7 +467,7 @@ func (cm *ChartMover) Move() error {
 			imageChanges: cm.imageChanges,
 			rawHints:     cm.rawHints,
 		}
-		return saveIntermediateBundle(bcd, cm.targetIntermediateTarPath, cm.logger)
+		return saveIntermediateBundle(bcd, cm.targetIntermediateTarPath, cm.skipImages, cm.logger)
 	}
 	return cm.moveChart()
 }
@@ -753,7 +760,9 @@ func WithRetries(retries uint) Option {
 func WithInsecure(insecure bool) Option {
 	return func(c *ChartMover) {
 		c.Insecure = insecure
-		c.targetContainerRegistry.WithInsecure(insecure)
+		if c.targetContainerRegistry != nil {
+			c.targetContainerRegistry.WithInsecure(insecure)
+		}
 	}
 }
 
@@ -768,8 +777,17 @@ func WithPlatform(platform v1.Platform) Option {
 	return func(c *ChartMover) {
 		if len(platform.Architecture) > 0 && len(platform.OS) > 0 {
 			c.platform = platform
-			c.sourceContainerRegistry.WithPlatform(platform)
+			if c.sourceContainerRegistry != nil {
+				c.sourceContainerRegistry.WithPlatform(platform)
+			}
 		}
+	}
+}
+
+// WithSkipImages sync charts only, without syncing images
+func WithSkipImages(skipImages bool) Option {
+	return func(c *ChartMover) {
+		c.skipImages = skipImages
 	}
 }
 

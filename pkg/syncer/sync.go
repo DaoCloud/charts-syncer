@@ -140,7 +140,15 @@ func (s *Syncer) SyncPendingCharts(chs ...*api.Charts) error {
 // update the images
 func (s *Syncer) SyncWithRelok8s(chart *Chart, outdir string) (string, error) {
 	req, packagedChartPath := getRelok8sMoveRequest(s.source, s.target, chart, outdir)
-	chartMover, err := mover.NewChartMover(req, mover.WithInsecure(s.insecure), mover.WithPlatform(s.platform))
+
+	skipImages := func() bool {
+		if s.skipImages {
+			return s.skipImages
+		}
+		return chart.SkipImages
+	}
+
+	chartMover, err := mover.NewChartMover(req, mover.WithInsecure(s.insecure), mover.WithPlatform(s.platform), mover.WithSkipImages(skipImages()))
 	if err != nil {
 		klog.Errorf("unable to create chart mover: %+v", err)
 		return "", errors.Trace(err)

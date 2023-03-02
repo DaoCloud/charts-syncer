@@ -23,6 +23,7 @@ type Chart struct {
 	Name         string
 	Version      string
 	Dependencies []string
+	SkipImages   bool
 
 	TgzPath string
 }
@@ -155,7 +156,7 @@ func (s *Syncer) loadCharts(charts ...*api.Charts) error {
 			sort.Sort(semver.Collection(vs))
 			// The last element of the array is the latest version
 			version := vs[len(vs)-1].String()
-			if err := s.processVersion(chart.Name, version, publishingThreshold); err != nil {
+			if err := s.processVersion(chart.Name, version, chart.SkipImages, publishingThreshold); err != nil {
 				klog.Warningf("Failed processing %s:%s chart. The index will remain incomplete.", chart.Name, version)
 				errs = multierror.Append(errs, errors.Trace(err))
 				continue
@@ -172,7 +173,7 @@ func (s *Syncer) loadCharts(charts ...*api.Charts) error {
 					continue
 				}
 
-				if err := s.processVersion(chart.Name, version, publishingThreshold); err != nil {
+				if err := s.processVersion(chart.Name, version, chart.SkipImages, publishingThreshold); err != nil {
 					klog.Warningf("Failed processing %s:%s chart. The index will remain incomplete.", chart.Name, version)
 					errs = multierror.Append(errs, errors.Trace(err))
 					continue
@@ -185,7 +186,7 @@ func (s *Syncer) loadCharts(charts ...*api.Charts) error {
 }
 
 // processVersion takes care of loading a specific version of the chart into the index
-func (s *Syncer) processVersion(name, version string, publishingThreshold time.Time) error {
+func (s *Syncer) processVersion(name, version string, skipImages bool, publishingThreshold time.Time) error {
 	details, err := s.cli.src.GetChartDetails(name, version)
 	if err != nil {
 		return err
@@ -211,7 +212,7 @@ func (s *Syncer) processVersion(name, version string, publishingThreshold time.T
 		return nil
 	}
 
-	if err := s.loadChart(name, version); err != nil {
+	if err := s.loadChart(name, version, skipImages); err != nil {
 		klog.Errorf("unable to load %q chart: %v", id, err)
 		return err
 	}
@@ -219,7 +220,7 @@ func (s *Syncer) processVersion(name, version string, publishingThreshold time.T
 }
 
 // loadChart loads a chart in the chart index map
-func (s *Syncer) loadChart(name string, version string) error {
+func (s *Syncer) loadChart(name string, version string, skipImages bool) error {
 	id := fmt.Sprintf("%s-%s", name, version)
 	// loadChart is a recursive function and it will be invoked again for each
 	// dependency.
@@ -254,9 +255,10 @@ func (s *Syncer) loadChart(name string, version string) error {
 	}
 
 	ch := &Chart{
-		Name:    name,
-		Version: version,
-		TgzPath: tgz,
+		Name:       name,
+		Version:    version,
+		SkipImages: skipImages,
+		TgzPath:    tgz,
 	}
 
 	if !s.skipDependencies {
@@ -273,7 +275,7 @@ func (s *Syncer) loadChart(name string, version string) error {
 		var errs error
 		for _, dep := range deps {
 			depID := fmt.Sprintf("%s-%s", dep.Name, dep.Version)
-			if err := s.loadChart(dep.Name, dep.Version); err != nil {
+			if err := s.loadChart(dep.Name, dep.Version, skipImages); err != nil {
 				errs = multierror.Append(errs, errors.Annotatef(err, "invalid %q chart dependency", depID))
 				continue
 			}

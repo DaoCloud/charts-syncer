@@ -43,6 +43,7 @@ type Syncer struct {
 	autoCreateRepository bool
 	platform             v1.Platform
 	verify               bool
+	skipImages           bool
 
 	// TODO(jdrios): Cache index in local filesystem to speed
 	// up re-runs
@@ -245,6 +246,13 @@ func WithPlatform(platform string) Option {
 func WithVerify(verify bool) Option {
 	return func(s *Syncer) {
 		s.verify = verify
+	}
+}
+
+// WithSkipImages sync charts only, without syncing images
+func WithSkipImages(skipImages bool) Option {
+	return func(s *Syncer) {
+		s.skipImages = skipImages
 	}
 }
 

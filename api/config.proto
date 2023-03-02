@@ -28,6 +28,7 @@ message Source {
 message Charts {
     string name = 1;
     repeated string versions = 2;
+    bool skip_images =3;
 }
 
 message Containers {
