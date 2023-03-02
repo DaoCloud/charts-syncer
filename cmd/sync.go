@@ -23,6 +23,7 @@ var (
 	platform              string
 	verify                bool
 	printImages           bool
+	syncSkipImages        bool
 )
 
 var (
@@ -102,6 +103,7 @@ func newSyncCmd() *cobra.Command {
 				syncer.WithSkipCharts(c.SkipCharts),
 				syncer.WithAutoCreateRepository(autoCreateRepository),
 				syncer.WithVerify(verify),
+				syncer.WithSkipImages(syncSkipImages),
 			}
 			if len(platform) > 0 {
 				syncerOptions = append(syncerOptions, syncer.WithPlatform(platform))
@@ -136,5 +138,6 @@ func newSyncCmd() *cobra.Command {
 	cmd.Flags().StringVar(&platform, "platform", "", "Specify pull image platform. example:linux/amd64")
 	cmd.Flags().BoolVar(&verify, "verify", false, "Verify the existence of the chart in the configuration")
 	cmd.Flags().BoolVar(&printImages, "print-images", false, "only print images declared in charts")
+	cmd.Flags().BoolVar(&syncSkipImages, "skip-images", false, "sync charts only, without syncing images")
 	return cmd
 }
