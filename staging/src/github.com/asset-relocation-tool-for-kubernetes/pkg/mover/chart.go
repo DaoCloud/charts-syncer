@@ -496,7 +496,7 @@ func validateTarget(target *Target) error {
 		return nil
 	}
 	rules := target.Rules
-	if rules.Registry == "" && rules.RepositoryPrefix == "" {
+	if rules.Registry == "" && rules.RepositoryPrefix == "" && rules.PrefixRegistry == "" {
 		return ErrOCIRewritesMissing
 	}
 	return nil
