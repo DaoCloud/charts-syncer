@@ -760,9 +760,6 @@ func WithRetries(retries uint) Option {
 func WithInsecure(insecure bool) Option {
 	return func(c *ChartMover) {
 		c.Insecure = insecure
-		if c.targetContainerRegistry != nil {
-			c.targetContainerRegistry.WithInsecure(insecure)
-		}
 	}
 }
 
@@ -777,9 +774,6 @@ func WithPlatform(platform v1.Platform) Option {
 	return func(c *ChartMover) {
 		if len(platform.Architecture) > 0 && len(platform.OS) > 0 {
 			c.platform = platform
-			if c.sourceContainerRegistry != nil {
-				c.sourceContainerRegistry.WithPlatform(platform)
-			}
 		}
 	}
 }
@@ -805,11 +799,11 @@ func notNilData(data []byte, err error) ([]byte, error) {
 // Initialize the ChartMover OCI credentials based on the provided request
 func initializeContainersAuth(req *ChartMoveRequest, cm *ChartMover) error {
 	var err error
-	if cm.sourceContainerRegistry, err = newContainerRegistryClient(req.Source.ContainersAuth); err != nil {
+	if cm.sourceContainerRegistry, err = newContainerRegistryClient(req.Source.ContainersAuth, cm); err != nil {
 		return err
 	}
 
-	if cm.targetContainerRegistry, err = newContainerRegistryClient(req.Target.ContainersAuth); err != nil {
+	if cm.targetContainerRegistry, err = newContainerRegistryClient(req.Target.ContainersAuth, cm); err != nil {
 		return err
 	}
 
@@ -817,7 +811,7 @@ func initializeContainersAuth(req *ChartMoveRequest, cm *ChartMover) error {
 }
 
 // Return a private registry keychain or one for anonymous access
-func newContainerRegistryClient(auth *ContainersAuth) (*internal.ContainerRegistryClient, error) {
+func newContainerRegistryClient(auth *ContainersAuth, cm *ChartMover) (*internal.ContainerRegistryClient, error) {
 	var keychain authn.Keychain
 	var err error
 
@@ -827,5 +821,5 @@ func newContainerRegistryClient(auth *ContainersAuth) (*internal.ContainerRegist
 		}
 	}
 
-	return internal.NewContainerRegistryClient(keychain), nil
+	return internal.NewContainerRegistryClient(keychain, internal.WithInsecure(cm.Insecure), internal.WithPlatform(cm.platform)), nil
 }
