@@ -19,8 +19,6 @@ type ContainerRegistryInterface interface {
 	Check(digest string, imageReference name.Reference) (bool, error)
 	Pull(imageReference name.Reference) (v1.Image, string, error)
 	Push(image v1.Image, dest name.Reference) error
-	WithInsecure(insecure bool)
-	WithPlatform(platform v1.Platform)
 }
 
 type ContainerRegistryClient struct {
@@ -29,19 +27,37 @@ type ContainerRegistryClient struct {
 	platform v1.Platform
 }
 
-func NewContainerRegistryClient(auth authn.Keychain) *ContainerRegistryClient {
-	return &ContainerRegistryClient{auth: auth, platform: v1.Platform{
+func NewContainerRegistryClient(auth authn.Keychain, opts ...Option) *ContainerRegistryClient {
+	crc := &ContainerRegistryClient{auth: auth, platform: v1.Platform{
 		Architecture: "amd64",
 		OS:           "linux",
 	}}
+
+	// Option overrides
+	for _, opt := range opts {
+		if opt != nil {
+			opt(crc)
+		}
+	}
+	return crc
 }
 
-func (i *ContainerRegistryClient) WithInsecure(insecure bool) {
-	i.insecure = insecure
+// Option adds optional functionality to NewContainerRegistryClient constructor
+type Option func(*ContainerRegistryClient)
+
+// WithInsecure sync charts only, without syncing images
+func WithInsecure(insecure bool) Option {
+	return func(c *ContainerRegistryClient) {
+		c.insecure = insecure
+	}
 }
 
-func (i *ContainerRegistryClient) WithPlatform(platform v1.Platform) {
-	i.platform = platform
+func WithPlatform(platform v1.Platform) Option {
+	return func(c *ContainerRegistryClient) {
+		if len(platform.Architecture) > 0 && len(platform.OS) > 0 {
+			c.platform = platform
+		}
+	}
 }
 
 func (i *ContainerRegistryClient) Pull(imageReference name.Reference) (v1.Image, string, error) {
