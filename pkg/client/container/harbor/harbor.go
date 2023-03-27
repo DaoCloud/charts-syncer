@@ -2,6 +2,7 @@ package harbor
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -28,7 +29,14 @@ func New(registry string, containers *api.Containers, insecure bool) (*Container
 	}
 
 	u := url.URL{Host: registry}
-	resp, err := http.Get(getPingURL("https", registry))
+	transport := http.DefaultTransport
+	if insecure {
+		transport = &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
+	}
+	client := &http.Client{Transport: transport}
+	resp, err := client.Get(getPingURL("https", registry))
 	if err == nil && resp.StatusCode == http.StatusOK {
 		u.Scheme = "https"
 	} else {
