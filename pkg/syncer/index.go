@@ -139,7 +139,7 @@ func (s *Syncer) loadCharts(charts ...*api.Charts) error {
 					return errors.Trace(fmt.Errorf("version %s of chart %s in %s does not exist", strings.Join(ver, ","), chart.Name, source))
 				}
 			}
-			return nil
+			continue
 		}
 
 		klog.V(5).Infof("Found %d versions for %q chart: %v", len(versions), chart.Name, versions)
