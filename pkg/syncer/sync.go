@@ -154,7 +154,7 @@ func (s *Syncer) SyncWithRelok8s(chart *Chart, outdir string) (string, error) {
 		return "", errors.Trace(err)
 	}
 
-	if s.autoCreateRepository && s.target.GetRepo() != nil && s.target.GetRepo().Url != "" && s.target.GetRepo().Kind == api.Kind_HARBOR {
+	if s.autoCreateRepository && s.target.GetRepo() != nil && s.target.GetRepo().Url != "" && (s.target.GetRepo().Kind == api.Kind_HARBOR || s.target.GetRepo().Kind == api.Kind_JFROG) {
 		err = retry.Do(
 			func() error {
 				err = s.SyncChartRepository()

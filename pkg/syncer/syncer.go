@@ -183,7 +183,7 @@ func New(source *api.Source, target *api.Target, opts ...Option) (*Syncer, error
 				}
 			}
 
-			cli, err := container.NewClient(registry, r, types.WithInsecure(s.insecure))
+			cli, err := container.NewClient(target.Containers.Kind, registry, r, types.WithInsecure(s.insecure))
 			if err != nil {
 				return nil, errors.Trace(err)
 			}

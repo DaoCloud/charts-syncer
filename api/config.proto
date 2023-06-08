@@ -41,6 +41,8 @@ message Containers {
         string password = 2;
         string registry = 3;
     }
+
+    Kind kind = 2;
 }
 
 // TargetRepo contains the required information of the target chart repository
@@ -86,4 +88,5 @@ enum Kind {
     HARBOR = 3;
     OCI = 4;
     LOCAL = 5;
+    JFROG = 6;
 }

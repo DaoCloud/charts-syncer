@@ -18,7 +18,7 @@ require (
 	github.com/golang/protobuf v1.5.2
 	github.com/google/go-cmp v0.5.6
 	github.com/google/go-containerregistry v0.7.0
-	github.com/juju/errors v0.0.0-20200330140219-3fe23663418f
+	github.com/juju/errors v1.0.0
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mkmik/multierror v0.3.0
 	github.com/opencontainers/image-spec v1.0.3-0.20211202183452-c5a74bcca799
