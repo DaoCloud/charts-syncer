@@ -121,14 +121,14 @@ func setAuthentication(source *api.Source, target *api.Target) error {
 		// should be pushed to, so the authentication must match this registry
 		prefixregistry := viper.GetString("target.containerprefixregistry")
 		if prefixregistry == "" {
-			username, password, registry := viper.GetString("target.containers.auth.username"), viper.GetString("target.containers.auth.password"), viper.GetString("target.containerregistry")
+			username, password, kind, registry := viper.GetString("target.containers.auth.username"), viper.GetString("target.containers.auth.password"), viper.GetString("target.containers.kind"), viper.GetString("target.containerregistry")
 			if username != "" || password != "" {
-				target.Containers = &api.Containers{Auth: &api.Containers_ContainerAuth{Username: username, Password: password, Registry: registry}}
+				target.Containers = &api.Containers{Kind: api.Kind(api.Kind_value[kind]), Auth: &api.Containers_ContainerAuth{Username: username, Password: password, Registry: registry}}
 			}
 		} else {
-			username, password, registry := viper.GetString("target.containers.auth.username"), viper.GetString("target.containers.auth.password"), viper.GetString("target.containerprefixregistry")
+			username, password, kind, registry := viper.GetString("target.containers.auth.username"), viper.GetString("target.containers.auth.password"), viper.GetString("target.containers.kind"), viper.GetString("target.containerprefixregistry")
 			if username != "" || password != "" {
-				target.Containers = &api.Containers{Auth: &api.Containers_ContainerAuth{Username: username, Password: password, Registry: registry}}
+				target.Containers = &api.Containers{Kind: api.Kind(api.Kind_value[kind]), Auth: &api.Containers_ContainerAuth{Username: username, Password: password, Registry: registry}}
 			}
 		}
 	}

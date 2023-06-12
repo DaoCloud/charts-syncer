@@ -11,6 +11,7 @@ import (
 	"github.com/bitnami-labs/charts-syncer/pkg/client/repo/chartmuseum"
 	"github.com/bitnami-labs/charts-syncer/pkg/client/repo/harbor"
 	"github.com/bitnami-labs/charts-syncer/pkg/client/repo/helmclassic"
+	"github.com/bitnami-labs/charts-syncer/pkg/client/repo/jfrog"
 	"github.com/bitnami-labs/charts-syncer/pkg/client/repo/local"
 	"github.com/bitnami-labs/charts-syncer/pkg/client/repo/oci"
 	"github.com/bitnami-labs/charts-syncer/pkg/client/types"
@@ -49,6 +50,8 @@ func NewClient(repo *api.Repo, opts ...types.Option) (client.ChartsReaderWriter,
 		return oci.New(repo, c, insecure)
 	case api.Kind_LOCAL:
 		return local.New(repo.Path)
+	case api.Kind_JFROG:
+		return jfrog.New(repo, c, insecure)
 	default:
 		return nil, errors.Errorf("unsupported repo kind %q", repo.Kind)
 	}
