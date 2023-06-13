@@ -164,7 +164,7 @@ func New(source *api.Source, target *api.Target, opts ...Option) (*Syncer, error
 		}
 		s.cli.dst = dstCli
 
-		if s.autoCreateRepository {
+		if s.autoCreateRepository && s.target.Containers != nil && (s.target.Containers.Kind == api.Kind_HARBOR || s.target.Containers.Kind == api.Kind_JFROG) {
 			registry := target.GetContainerPrefixRegistry()
 			if registry == "" {
 				registry = target.GetContainerRegistry()

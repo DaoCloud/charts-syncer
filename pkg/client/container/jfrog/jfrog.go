@@ -131,10 +131,10 @@ func (c *Container) checkRepository(repository string) error {
 
 func (c *Container) CreateRepository(repository string) error {
 	target := strings.Split(repository, "/")
-	if len(target) < 3 {
+	if len(target) < 2 {
 		return nil
 	}
-	repository = target[len(target)-2]
+	repository = target[1]
 
 	err := c.checkRepository(repository)
 	if err == nil {
