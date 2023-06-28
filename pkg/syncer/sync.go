@@ -2,6 +2,7 @@ package syncer
 
 import (
 	"fmt"
+	"github.com/bitnami-labs/charts-syncer/pkg/util"
 	"io/ioutil"
 	"os"
 	"path"
@@ -154,14 +155,28 @@ func (s *Syncer) SyncWithRelok8s(chart *Chart, outdir string) (string, error) {
 		return "", errors.Trace(err)
 	}
 
-	if s.autoCreateRepository && s.target.GetRepo() != nil && s.target.GetRepo().Url != "" && (s.target.GetRepo().Kind == api.Kind_HARBOR || s.target.GetRepo().Kind == api.Kind_JFROG) {
+	if s.autoCreateRepository && s.target.GetRepo() != nil && util.CheckoutSupportAutoCreateRepository(s.target.GetRepo().Kind) {
 		err = retry.Do(
 			func() error {
 				err = s.SyncChartRepository()
 				if err != nil {
 					return err
 				}
+				return nil
+			},
+			retry.Attempts(3),
+			retry.OnRetry(func(n uint, err error) {
+				klog.V(3).Infof("Attempt #%d failed: %s\n", n+1, err.Error())
+			}),
+		)
+		if err != nil {
+			return "", err
+		}
+	}
 
+	if s.autoCreateRepository && s.target.Containers != nil && util.CheckoutSupportAutoCreateRepository(s.target.Containers.Kind) {
+		err = retry.Do(
+			func() error {
 				err = s.SyncImagesRepository(chartMover)
 				if err != nil {
 					return err
@@ -199,18 +214,19 @@ func (s *Syncer) SyncChartRepository() error {
 }
 
 func (s *Syncer) SyncImagesRepository(chartMover *mover.ChartMover) error {
+	if s.target.Containers == nil {
+		return nil
+	}
+
+	if s.containerCLI == nil {
+		return nil
+	}
+
 	changes := chartMover.GetImageChanges()
 	for _, change := range changes {
-		if s.containerCLI != nil {
-			err := s.containerCLI.CreateRepository(change.RewrittenReference.Name())
-			if err != nil {
-				return err
-			}
-		} else {
-			err := s.cli.dst.CreateRepository(change.RewrittenReference.Name())
-			if err != nil {
-				return err
-			}
+		err := s.containerCLI.CreateRepository(change.RewrittenReference.Name())
+		if err != nil {
+			return err
 		}
 	}
 	return nil

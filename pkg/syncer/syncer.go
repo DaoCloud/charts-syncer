@@ -2,6 +2,7 @@ package syncer
 
 import (
 	"fmt"
+	"github.com/bitnami-labs/charts-syncer/pkg/util"
 	"os"
 	"strings"
 
@@ -164,23 +165,24 @@ func New(source *api.Source, target *api.Target, opts ...Option) (*Syncer, error
 		}
 		s.cli.dst = dstCli
 
-		if s.autoCreateRepository && s.target.Containers != nil && (s.target.Containers.Kind == api.Kind_HARBOR || s.target.Containers.Kind == api.Kind_JFROG) {
+		if s.autoCreateRepository && s.target.Containers != nil && util.CheckoutSupportAutoCreateRepository(s.target.Containers.Kind) {
 			registry := target.GetContainerPrefixRegistry()
 			if registry == "" {
 				registry = target.GetContainerRegistry()
 			}
 
-			if registry == "" {
-				return nil, errors.New("use auto-create-repository must specify containerPrefixRegistry or containerRegistry")
-			}
-
 			r := &api.Containers{}
 			if target.Containers != nil && target.Containers.Auth != nil {
+				registry = target.Containers.Auth.GetRegistry()
 				r.Auth = &api.Containers_ContainerAuth{
 					Registry: target.Containers.Auth.GetRegistry(),
 					Username: target.Containers.Auth.GetUsername(),
 					Password: target.Containers.Auth.GetPassword(),
 				}
+			}
+
+			if registry == "" {
+				return nil, errors.New("use auto-create-repository must specify registry")
 			}
 
 			cli, err := container.NewClient(target.Containers.Kind, registry, r, types.WithInsecure(s.insecure))
