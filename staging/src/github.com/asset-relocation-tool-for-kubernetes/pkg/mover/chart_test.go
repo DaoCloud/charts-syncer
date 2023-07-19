@@ -793,7 +793,7 @@ func TestStripDependencyRefs(t *testing.T) {
 	sortCharts(firstLevelDeps)
 
 	for _, c := range []*chart.Chart{modifiedChart, firstLevelDeps[0]} {
-		if got := len(c.Metadata.Dependencies); got != 0 {
+		if got := len(c.Metadata.Dependencies); got == 0 {
 			t.Errorf("expected no dependencies got=%d", got)
 		}
 

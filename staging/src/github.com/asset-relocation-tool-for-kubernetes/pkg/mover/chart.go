@@ -449,7 +449,7 @@ func namespacedPath(fullpath, chartName string) string {
 }
 
 /*
-  Move performs the relocation.
+	Move performs the relocation.
 
 A regular move executes the Chart relocation which includes
 - Push all the images to their new locations
@@ -674,7 +674,9 @@ func modifyChart(originalChart *chart.Chart, actions []*internal.RewriteAction, 
 // Removes recursively the Chart.lock file and the dependencies reference inside Chart.yaml
 func stripDependencyRefs(c *chart.Chart) error {
 	// By setting this to nil, chart.Save will re-save the Chart.yaml and ignore the lock
-	c.Metadata.Dependencies = nil
+	for idx := range c.Metadata.Dependencies {
+		c.Metadata.Dependencies[idx].Repository = ""
+	}
 	c.Lock = nil
 
 	// Apply to sub-charts too
