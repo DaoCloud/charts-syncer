@@ -1,7 +1,7 @@
 // Copyright 2021 VMware, Inc.
 // SPDX-License-Identifier: BSD-2-Clause
 
-package internal
+package provider
 
 import (
 	"bytes"
@@ -11,7 +11,7 @@ import (
 
 	"github.com/divideandconquer/go-merge/merge"
 	"github.com/google/go-containerregistry/pkg/name"
-	yamlops2 "github.com/vmware-tanzu/asset-relocation-tool-for-kubernetes/internal/yamlops"
+	yamlops2 "github.com/vmware-tanzu/asset-relocation-tool-for-kubernetes/provider/yamlops"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chartutil"
 )
@@ -31,7 +31,7 @@ func (a *RewriteAction) TopLevelKey() string {
 }
 
 // removes the first part of the dot delimited string
-//.sub-1.foo.bar => .foo.bar
+// .sub-1.foo.bar => .foo.bar
 func (a *RewriteAction) stripPrefix() string {
 	// Starting in 2 since there is an empty string as first element
 	return "." + strings.Join(strings.Split(a.Path, ".")[2:], ".")

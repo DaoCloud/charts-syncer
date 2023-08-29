@@ -1,17 +1,18 @@
 source:
   intermediateBundlesPath: charts-dir
 target:
-  containerRegistry: release-ci.daocloud.io
-# containerPrefixRegistry: release-ci.daocloud.io
-  containerRepository: charts-syncer-auto
+  containerRegistry: 10.16.10.170:8082
+  # containerPrefixRegistry: release-ci.daocloud.io
+  containerPrefixRepository: docker
   repo:
-    kind: HARBOR # or as any other supported Helm Chart repository kinds
-    url: https://release-ci.daocloud.io/chartrepo/charts-syncer-auto
-#    auth:
-#      username: [USERNAME]
-#      password: [PASSWORD]
-#  ## Container registry authentication
-#  containers:
-#    auth:
-#      username: [USERNAME]
-#      password: [PASSWORD]
+    kind: JFROG # or as any other supported Helm Chart repository kinds
+    url: http://10.16.10.170:8082/artifactory/addon
+    auth:
+      username: admin
+      password: Dangerous@2022
+  ## Container registry authentication
+  containers:
+    kind: JFROG
+    auth:
+      username: admin
+      password: Dangerous@2022

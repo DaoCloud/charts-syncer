@@ -1,7 +1,7 @@
 // Copyright 2021 VMware, Inc.
 // SPDX-License-Identifier: BSD-2-Clause
 
-package internal_test
+package provider_test
 
 import (
 	"fmt"
@@ -9,8 +9,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/name"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
-	. "github.com/onsi/gomega"
-	"github.com/vmware-tanzu/asset-relocation-tool-for-kubernetes/internal"
+	internal "github.com/vmware-tanzu/asset-relocation-tool-for-kubernetes/provider"
 	"github.com/vmware-tanzu/asset-relocation-tool-for-kubernetes/test"
 )
 

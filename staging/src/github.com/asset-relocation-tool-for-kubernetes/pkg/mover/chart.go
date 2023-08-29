@@ -19,8 +19,8 @@ import (
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/chartutil"
 
-	"github.com/vmware-tanzu/asset-relocation-tool-for-kubernetes/internal"
 	"github.com/vmware-tanzu/asset-relocation-tool-for-kubernetes/pkg/util/cmduitl"
+	internal "github.com/vmware-tanzu/asset-relocation-tool-for-kubernetes/provider"
 )
 
 const (
@@ -496,7 +496,7 @@ func validateTarget(target *Target) error {
 		return nil
 	}
 	rules := target.Rules
-	if rules.Registry == "" && rules.RepositoryPrefix == "" && rules.PrefixRegistry == "" {
+	if rules.Registry == "" && rules.RepositoryPrefix == "" && rules.RegistryPrefix == "" {
 		return ErrOCIRewritesMissing
 	}
 	return nil
@@ -571,7 +571,7 @@ func (cm *ChartMover) computeChanges(imageChanges []*internal.ImageChange, regis
 	imageCache := map[string]bool{}
 	rewriteRules := &internal.OCIImageLocation{
 		Registry:         registryRules.Registry,
-		PrefixRegistry:   registryRules.PrefixRegistry,
+		PrefixRegistry:   registryRules.RegistryPrefix,
 		RepositoryPrefix: registryRules.RepositoryPrefix,
 	}
 

@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"testing"
 
-	yamlops2 "github.com/vmware-tanzu/asset-relocation-tool-for-kubernetes/internal/yamlops"
+	yamlops2 "github.com/vmware-tanzu/asset-relocation-tool-for-kubernetes/provider/yamlops"
 )
 
 type node struct {

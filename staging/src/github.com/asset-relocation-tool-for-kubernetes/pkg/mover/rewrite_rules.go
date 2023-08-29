@@ -15,8 +15,10 @@ type RewriteRules struct {
 	// Registry overrides the registry part of the image FQDN, i.e myregistry.io
 	Registry string
 	// PrefixRegistry add prefix of the registry
-	PrefixRegistry string
-	// RepositoryPrefix will override the image path by being prepended before the image name
+	RegistryPrefix string
+	// Repository will override the image path by being prepended before the image name
+	Repository string
+	// RepositoryPrefix add prefix of the repository
 	RepositoryPrefix string
 	// Push the image even if there is already an image with a different digest
 	ForcePush bool

@@ -19,11 +19,9 @@ import (
 	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gbytes"
-	"github.com/vmware-tanzu/asset-relocation-tool-for-kubernetes/internal"
-	"github.com/vmware-tanzu/asset-relocation-tool-for-kubernetes/internal/internalfakes"
 	"github.com/vmware-tanzu/asset-relocation-tool-for-kubernetes/pkg/mover/moverfakes"
+	internal "github.com/vmware-tanzu/asset-relocation-tool-for-kubernetes/provider"
+	"github.com/vmware-tanzu/asset-relocation-tool-for-kubernetes/provider/internalfakes"
 	"github.com/vmware-tanzu/asset-relocation-tool-for-kubernetes/test"
 	"helm.sh/helm/v3/pkg/chart/loader"
 )

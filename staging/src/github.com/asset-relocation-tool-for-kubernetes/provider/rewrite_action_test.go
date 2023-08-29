@@ -1,7 +1,7 @@
 // Copyright 2022 VMware, Inc.
 // SPDX-License-Identifier: BSD-2-Clause
 
-package internal_test
+package provider_test
 
 import (
 	"crypto/sha256"
@@ -13,13 +13,12 @@ import (
 	"testing"
 
 	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/chartutil"
 
-	"github.com/vmware-tanzu/asset-relocation-tool-for-kubernetes/internal"
 	"github.com/vmware-tanzu/asset-relocation-tool-for-kubernetes/pkg/util/cmduitl"
+	internal "github.com/vmware-tanzu/asset-relocation-tool-for-kubernetes/provider"
 )
 
 var _ = Describe("RewriteAction", func() {
