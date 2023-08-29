@@ -19,7 +19,8 @@ import (
 type OCIImageLocation struct {
 	Registry         string
 	PrefixRegistry   string
-	RepositoryPrefix string
+	Repository       string
+	PrefixRepository string
 }
 type RewriteAction struct {
 	Path  string `json:"path"`
@@ -31,7 +32,7 @@ func (a *RewriteAction) TopLevelKey() string {
 }
 
 // removes the first part of the dot delimited string
-//.sub-1.foo.bar => .foo.bar
+// .sub-1.foo.bar => .foo.bar
 func (a *RewriteAction) stripPrefix() string {
 	// Starting in 2 since there is an empty string as first element
 	return "." + strings.Join(strings.Split(a.Path, ".")[2:], ".")
@@ -194,10 +195,14 @@ func (t *ImageTemplate) Apply(originalImage name.Repository, imageDigest string,
 
 	// Repository path should contain the repositoryPrefix + imageName
 	repository := originalImage.RepositoryStr()
-	if rules.RepositoryPrefix != "" {
+	if rules.Repository != "" {
 		repoParts := strings.Split(originalImage.RepositoryStr(), "/")
 		imageName := repoParts[len(repoParts)-1]
-		repository = fmt.Sprintf("%s/%s", rules.RepositoryPrefix, imageName)
+		repository = fmt.Sprintf("%s/%s", rules.Repository, imageName)
+	}
+
+	if rules.PrefixRepository != "" {
+		repository = fmt.Sprintf("%s/%s", rules.PrefixRepository, repository)
 	}
 
 	if rules.PrefixRegistry != "" {

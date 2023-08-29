@@ -2,6 +2,8 @@ module github.com/vmware-tanzu/asset-relocation-tool-for-kubernetes
 
 go 1.17
 
+replace github.com/vmware-tanzu/asset-relocation-tool-for-kubernetes => ./asset-relocation-tool-for-kubernetes
+
 require (
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/bunniesandbeatings/goerkin v0.1.4-beta
