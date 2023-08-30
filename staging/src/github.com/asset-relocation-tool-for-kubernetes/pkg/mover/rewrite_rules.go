@@ -17,32 +17,56 @@ type RewriteRules struct {
 	// PrefixRegistry add prefix of the registry
 	PrefixRegistry string
 	// RepositoryPrefix will override the image path by being prepended before the image name
-	RepositoryPrefix string
+	Repository string
+	// PrefixRegistry add prefix of the registry
+	PrefixRepository string
 	// Push the image even if there is already an image with a different digest
 	ForcePush bool
 }
 
 func (r *RewriteRules) Validate() error {
-	if r.Registry != "" {
-		if strings.Contains(r.Registry, "/") {
-			_, err := name.NewRepository(r.Registry, name.StrictValidation)
+	var (
+		registry   string
+		repository string
+	)
+
+	switch {
+	case r.Registry != "" && r.PrefixRegistry != "":
+		registry = fmt.Sprintf("%s/%s", r.PrefixRepository, r.Repository)
+	case r.Registry != "":
+		registry = r.Registry
+	case r.PrefixRegistry != "":
+		registry = r.PrefixRegistry
+	}
+
+	if registry != "" {
+		if strings.Contains(registry, "/") {
+			_, err := name.NewRepository(registry, name.StrictValidation)
 			if err != nil {
 				return fmt.Errorf("registry rule is not valid: %w", err)
 			}
 		} else {
-			_, err := name.NewRegistry(r.Registry, name.StrictValidation)
+			_, err := name.NewRegistry(registry, name.StrictValidation)
 			if err != nil {
 				return fmt.Errorf("registry rule is not valid: %w", err)
 			}
 		}
 	}
 
-	if r.RepositoryPrefix != "" {
-		_, err := name.NewRepository(r.RepositoryPrefix)
-		if err != nil {
-			return fmt.Errorf("repository prefix rule is not valid: %w", err)
-		}
+	switch {
+	case r.Repository != "" && r.PrefixRepository != "":
+		repository = fmt.Sprintf("%s/%s", r.PrefixRepository, r.Repository)
+	case r.Repository != "":
+		repository = r.Repository
+	case r.PrefixRepository != "":
+		repository = r.PrefixRepository
 	}
 
+	if repository != "" {
+		_, err := name.NewRepository(repository)
+		if err != nil {
+			return fmt.Errorf("repository rule is not valid: %w", err)
+		}
+	}
 	return nil
 }

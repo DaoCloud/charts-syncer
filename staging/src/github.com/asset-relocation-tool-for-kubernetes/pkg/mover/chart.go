@@ -496,7 +496,7 @@ func validateTarget(target *Target) error {
 		return nil
 	}
 	rules := target.Rules
-	if rules.Registry == "" && rules.RepositoryPrefix == "" && rules.PrefixRegistry == "" {
+	if rules.Registry == "" && rules.Repository == "" && rules.PrefixRegistry == "" && rules.PrefixRepository == "" {
 		return ErrOCIRewritesMissing
 	}
 	return nil
@@ -572,7 +572,8 @@ func (cm *ChartMover) computeChanges(imageChanges []*internal.ImageChange, regis
 	rewriteRules := &internal.OCIImageLocation{
 		Registry:         registryRules.Registry,
 		PrefixRegistry:   registryRules.PrefixRegistry,
-		RepositoryPrefix: registryRules.RepositoryPrefix,
+		Repository:       registryRules.Repository,
+		PrefixRepository: registryRules.PrefixRepository,
 	}
 
 	for _, change := range imageChanges {
