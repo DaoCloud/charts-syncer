@@ -193,10 +193,6 @@ func NewChartMover(req *ChartMoveRequest, opts ...Option) (*ChartMover, error) {
 			targetOutput(req.Target.Chart.Local.Path, cm.chart.Name(), cm.chart.Metadata.Version)
 	}
 
-	if cm.skipImages {
-		return cm, nil
-	}
-
 	if err := cm.loadImageHints(&req.Source); err != nil {
 		return nil, fmt.Errorf("failed to load hints file: %w", err)
 	}
@@ -476,11 +472,14 @@ func (cm *ChartMover) moveChart() error {
 	log := cm.logger
 	log.Printf("Relocating %s@%s...\n", cm.chart.Name(), cm.chart.Metadata.Version)
 
-	err := cm.pushRewrittenImages(cm.imageChanges)
-	if err != nil {
-		return err
+	if !cm.skipImages {
+		err := cm.pushRewrittenImages(cm.imageChanges)
+		if err != nil {
+			return err
+		}
 	}
-	err = modifyChart(cm.chart, cm.chartChanges, cm.chartDestination)
+
+	err := modifyChart(cm.chart, cm.chartChanges, cm.chartDestination)
 	if err != nil {
 		return err
 	}
@@ -519,7 +518,7 @@ func (cm *ChartMover) loadOriginalImages(imagePatterns []*internal.ImageTemplate
 		}
 		action = "load"
 	}
-	imageChanges, err := loadImageChanges(cm.chart, imagePatterns, loadFn, cm.Insecure)
+	imageChanges, err := loadImageChanges(cm.chart, imagePatterns, loadFn, cm.Insecure, cm.skipImages)
 	if err != nil {
 		return nil, fmt.Errorf("failed to %s original images: %w", action, err)
 	}
@@ -529,7 +528,7 @@ func (cm *ChartMover) loadOriginalImages(imagePatterns []*internal.ImageTemplate
 // loadImageChanges loads images from a loader function load and wraps them as
 // ImageChange appropriately. As the load function is abstracted away this
 // can be loading remote or local images the same way.
-func loadImageChanges(chart *chart.Chart, patterns []*internal.ImageTemplate, load imageLoadFn, insecure bool) ([]*internal.ImageChange, error) {
+func loadImageChanges(chart *chart.Chart, patterns []*internal.ImageTemplate, load imageLoadFn, insecure, skipImages bool) ([]*internal.ImageChange, error) {
 	var changes []*internal.ImageChange
 	imageCache := map[string]*internal.ImageChange{}
 
@@ -544,17 +543,19 @@ func loadImageChanges(chart *chart.Chart, patterns []*internal.ImageTemplate, lo
 			ImageReference: originalImage,
 		}
 
-		if imageCache[originalImage.Name()] == nil {
-			image, digest, err := load(originalImage)
-			if err != nil {
-				return nil, err
+		if !skipImages {
+			if imageCache[originalImage.Name()] == nil {
+				image, digest, err := load(originalImage)
+				if err != nil {
+					return nil, err
+				}
+				change.Image = image
+				change.Digest = digest
+				imageCache[originalImage.Name()] = change
+			} else {
+				change.Image = imageCache[originalImage.Name()].Image
+				change.Digest = imageCache[originalImage.Name()].Digest
 			}
-			change.Image = image
-			change.Digest = digest
-			imageCache[originalImage.Name()] = change
-		} else {
-			change.Image = imageCache[originalImage.Name()].Image
-			change.Digest = imageCache[originalImage.Name()].Digest
 		}
 
 		// If the identifier is not the digest, then it must be the tag.
