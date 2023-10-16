@@ -633,6 +633,11 @@ func (cm *ChartMover) pushRewrittenImages(imageChanges []*internal.ImageChange) 
 						}
 					}
 
+					ok, _ := cm.targetContainerRegistry.Check(change.Digest, imageToPush)
+					if !ok {
+						cm.logger.Printf("Image %s already exists, skip pushing...\n", imageToPush.Name())
+						return nil
+					}
 					cm.logger.Printf("Pushing %s...\n", imageToPush.Name())
 					err = cm.targetContainerRegistry.Push(change.Image, imageToPush)
 					if err != nil {
