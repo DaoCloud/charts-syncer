@@ -93,9 +93,9 @@ func newChartMoveCmd() *cobra.Command {
 
 func moveChart(cmd *cobra.Command, args []string) error {
 	targetRewriteRules := &mover.RewriteRules{
-		Registry:         registryRule,
-		RepositoryPrefix: repositoryPrefixRule,
-		ForcePush:        forcePush,
+		Registry:       registryRule,
+		PrefixRegistry: repositoryPrefixRule,
+		ForcePush:      forcePush,
 	}
 
 	err := targetRewriteRules.Validate()
