@@ -195,22 +195,19 @@ func (t *ImageTemplate) Apply(originalImage name.Repository, imageDigest string,
 
 	// Repository path should contain the repositoryPrefix + imageName
 	repository := originalImage.RepositoryStr()
-	if rules.PrefixRepository != "" {
+	switch {
+	case rules.PrefixRepository != "" && rules.PrefixRegistry != "":
+		repository = fmt.Sprintf("%s/%s/%s", rules.PrefixRepository, originalImage.Registry.Name(), repository)
+	case rules.PrefixRepository != "":
 		repository = fmt.Sprintf("%s/%s", rules.PrefixRepository, repository)
+	case rules.PrefixRegistry != "":
+		repository = fmt.Sprintf("%s/%s", originalImage.Registry.Name(), repository)
 	}
 
 	if rules.Repository != "" {
 		repoParts := strings.Split(originalImage.RepositoryStr(), "/")
 		imageName := repoParts[len(repoParts)-1]
 		repository = fmt.Sprintf("%s/%s", rules.Repository, imageName)
-	}
-
-	if rules.PrefixRegistry != "" {
-		if rules.Registry != "" {
-			repository = fmt.Sprintf("%s/%s", rules.Registry, repository)
-		} else {
-			repository = fmt.Sprintf("%s/%s", repository, originalImage.Registry.Name())
-		}
 	}
 
 	// Append the image digest unless the tag or digest are explicitly encoded in the template
