@@ -347,7 +347,7 @@ func (cm *ChartMover) loadImageHints(src *Source) error {
 	} else if err := cm.loadImageHintsFromFileOrChart(src.ImageHintsFile); err != nil {
 		return err
 	}
-	if cm.rawHints == nil {
+	if cm.rawHints == nil && !cm.skipImages {
 		return ErrImageHintsMissing
 	}
 	return nil
