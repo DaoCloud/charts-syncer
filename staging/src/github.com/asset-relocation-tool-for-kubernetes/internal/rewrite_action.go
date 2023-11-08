@@ -83,6 +83,14 @@ func applyUpdate(chart *chart.Chart, a *RewriteAction) error {
 
 	newData, err := yamlops2.UpdateMap(data, a.GetPathToMap(), "", nil, value)
 	if err != nil {
+		if strings.Contains(err.Error(), "has no field") {
+			newData, err = yamlops2.InsertMap(data, a.GetPathToMap(), []byte(a.GetKey()), []byte(a.Value))
+			if err != nil {
+				return err
+			}
+			chart.Raw[valuesIndex].Data = newData
+			return nil
+		}
 		return fmt.Errorf("failed to apply modification to %s: %w", chart.Name(), err)
 	}
 

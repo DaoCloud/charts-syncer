@@ -30,30 +30,29 @@ import (
 //
 // Update a Chart's values.yaml to set a specific image's reference:
 //
-//     UpdateMap(doc, ".images.postgresql", "", nil, map[string]string{
-//         "registry": "docker.io",
-//         "repository": "bitnami/postgresql",
-//         "tag": "11.6.0-debian-10-r5",
-//     })
+//	UpdateMap(doc, ".images.postgresql", "", nil, map[string]string{
+//	    "registry": "docker.io",
+//	    "repository": "bitnami/postgresql",
+//	    "tag": "11.6.0-debian-10-r5",
+//	})
 //
 // Update a Chart's values.yaml to replace any uses of a general purpose image:
 //
-//     UpdateMap(doc, "", "",map[string]string{
-//         "repository": "bitnami/minideb",
-//     }, map[string]string{
-//         "registry": "custom.images.org",
-//         "repository": "custom-general-purpose",
-//         "tag": "1.2.3",
-//     })
+//	UpdateMap(doc, "", "",map[string]string{
+//	    "repository": "bitnami/minideb",
+//	}, map[string]string{
+//	    "registry": "custom.images.org",
+//	    "repository": "custom-general-purpose",
+//	    "tag": "1.2.3",
+//	})
 //
 // Update a Chart's dependencies to rewrite a chart registry:
 //
-//     UpdateMap(doc, "", ".dependencies", map[string]string{
-//         "repository": "https://charts.bitnami.com/bitnami",
-//     }, map[string]string{
-//         "repository": "custom.charts.org",
-//     })
-//
+//	UpdateMap(doc, "", ".dependencies", map[string]string{
+//	    "repository": "https://charts.bitnami.com/bitnami",
+//	}, map[string]string{
+//	    "repository": "custom.charts.org",
+//	})
 func UpdateMap(doc []byte, pathSpec, selectorFilter string, selectors, values map[string]string) ([]byte, error) {
 	root, err := parse(doc)
 	if err != nil {
@@ -143,6 +142,27 @@ func UpdateMap(doc []byte, pathSpec, selectorFilter string, selectors, values ma
 		doc = append(doc[:start], append(value, doc[end:]...)...)
 	}
 
+	return doc, nil
+}
+
+func InsertMap(doc []byte, pathSpec string, key, value []byte) ([]byte, error) {
+	root, err := parse(doc)
+	if err != nil {
+		return nil, err
+	}
+	node := SearchNodes(root, ".", NodeHasPath(pathSpec))[pathSpec]
+	if node == nil {
+		return nil, fmt.Errorf("test error")
+	}
+	lastContent := node.Content[len(node.Content)-1]
+	// %s: %s\n
+	lines := make([]byte, node.Column)
+	lines[0] = '\n'
+	for i := 1; i < node.Column; i++ {
+		lines[i] = ' '
+	}
+	lines = append(append(append(append(lines, key...), ':'), ' '), value...)
+	doc = append(doc[:lastContent.IndexEnd], append(lines, doc[lastContent.IndexEnd:]...)...)
 	return doc, nil
 }
 
