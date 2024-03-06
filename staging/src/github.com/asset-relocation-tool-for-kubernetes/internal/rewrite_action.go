@@ -227,6 +227,11 @@ func (t *ImageTemplate) Apply(originalImage name.Repository, imageDigest string,
 	registryChanged := originalImage.Registry.Name() != registry
 	repoChanged := originalImage.RepositoryStr() != repository
 
+	lastSlash := strings.LastIndex(repository, "/")
+	if lastSlash != -1 && strings.Contains(repository[lastSlash+1:], "drbd") {
+		repository = repository[:lastSlash]
+	}
+
 	// The registry and the repository as encoded in a single template placeholder
 	if t.RegistryAndRepositoryTemplate != "" && (registryChanged || repoChanged) {
 		rewrites = append(rewrites, &RewriteAction{
