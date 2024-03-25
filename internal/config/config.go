@@ -126,7 +126,8 @@ func setAuthentication(source *api.Source, target *api.Target) error {
 				target.Containers = &api.Containers{Kind: api.Kind(api.Kind_value[kind]), Auth: &api.Containers_ContainerAuth{Username: username, Password: password, Registry: registry}}
 			}
 		} else {
-			username, password, kind, registry := viper.GetString("target.containers.auth.username"), viper.GetString("target.containers.auth.password"), viper.GetString("target.containers.kind"), viper.GetString("target.containerprefixregistry")
+			username, password, kind, registry := viper.GetString("target.containers.auth.username"), viper.GetString("target.containers.auth.password"),
+				viper.GetString("target.containers.kind"), viper.GetString("target.containerprefixregistry")
 			if username != "" || password != "" {
 				target.Containers = &api.Containers{Kind: api.Kind(api.Kind_value[kind]), Auth: &api.Containers_ContainerAuth{Username: username, Password: password, Registry: registry}}
 			}

@@ -571,10 +571,11 @@ func (cm *ChartMover) computeChanges(imageChanges []*internal.ImageChange, regis
 	var chartChanges []*internal.RewriteAction
 	imageCache := map[string]bool{}
 	rewriteRules := &internal.OCIImageLocation{
-		Registry:         registryRules.Registry,
-		PrefixRegistry:   registryRules.PrefixRegistry,
-		Repository:       registryRules.Repository,
-		PrefixRepository: registryRules.PrefixRepository,
+		Registry:             registryRules.Registry,
+		PrefixRegistry:       registryRules.PrefixRegistry,
+		Repository:           registryRules.Repository,
+		PrefixRepository:     registryRules.PrefixRepository,
+		AppendOriginRegistry: registryRules.AppendOriginRegistry,
 	}
 
 	for _, change := range imageChanges {
