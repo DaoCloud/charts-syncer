@@ -327,7 +327,7 @@ func getRelok8sMoveRequest(source *api.Source, target *api.Target, chart *Chart,
 		return relok8sBundleLoadReq(
 			chart.TgzPath, outputChartPath,
 			target.GetContainerRegistry(), target.GetContainerRepository(),
-			target.GetContainerPrefixRegistry(), target.GetContainerPrefixRepository(), target.GetContainers().GetAuth()), packagedChartPath
+			target.GetContainerPrefixRegistry(), target.GetContainerPrefixRepository(), target.GetAppendOriginRegistry(), target.GetContainers().GetAuth()), packagedChartPath
 	} else {
 		// Direct syncing, SOURCE_REPO => TARGET_REPO
 		// Once https://github.com/vmware-tanzu/asset-relocation-tool-for-kubernetes/issues/94 is solved, we could
@@ -335,11 +335,11 @@ func getRelok8sMoveRequest(source *api.Source, target *api.Target, chart *Chart,
 		outputChartPath := filepath.Join(outdir, "%s-%s.tgz")
 		packagedChartPath := filepath.Join(outdir, fmt.Sprintf("%s-%s.tgz", chart.Name, chart.Version))
 		return relok8sMoveReq(chart.TgzPath, outputChartPath, target.GetContainerRegistry(), target.GetContainerRepository(),
-			target.GetContainerPrefixRegistry(), target.GetContainerPrefixRepository(), source.GetContainers().GetAuth(), target.GetContainers().GetAuth()), packagedChartPath
+			target.GetContainerPrefixRegistry(), target.GetContainerPrefixRepository(), target.GetAppendOriginRegistry(), source.GetContainers().GetAuth(), target.GetContainers().GetAuth()), packagedChartPath
 	}
 }
 
-func relok8sMoveReq(sourcePath, targetPath, containerRegistry, containerRepository, containerPrefixRegistry, containerPrefixRepository string, sourceAuth, targetAuth *api.Containers_ContainerAuth) *mover.ChartMoveRequest {
+func relok8sMoveReq(sourcePath, targetPath, containerRegistry, containerRepository, containerPrefixRegistry, containerPrefixRepository string, appendOriginRegistry bool, sourceAuth, targetAuth *api.Containers_ContainerAuth) *mover.ChartMoveRequest {
 	req := &mover.ChartMoveRequest{
 		Source: mover.Source{
 			Chart: mover.ChartSpec{
@@ -351,11 +351,12 @@ func relok8sMoveReq(sourcePath, targetPath, containerRegistry, containerReposito
 		},
 		Target: mover.Target{
 			Rules: mover.RewriteRules{
-				Registry:         containerRegistry,
-				PrefixRegistry:   containerPrefixRegistry,
-				Repository:       containerRepository,
-				PrefixRepository: containerPrefixRepository,
-				ForcePush:        true,
+				Registry:             containerRegistry,
+				PrefixRegistry:       containerPrefixRegistry,
+				AppendOriginRegistry: appendOriginRegistry,
+				Repository:           containerRepository,
+				PrefixRepository:     containerPrefixRepository,
+				ForcePush:            true,
 			},
 			Chart: mover.ChartSpec{
 				Local: &mover.LocalChart{
@@ -390,7 +391,7 @@ func relok8sBundleSaveReq(sourcePath, targetPath string, containerSourceAuth *ap
 	return req
 }
 
-func relok8sBundleLoadReq(sourcePath, targetPath, containerRegistry, containerRepository, containerPrefixRegistry, containerPrefixRepository string, containerTargetAuth *api.Containers_ContainerAuth) *mover.ChartMoveRequest {
+func relok8sBundleLoadReq(sourcePath, targetPath, containerRegistry, containerRepository, containerPrefixRegistry, containerPrefixRepository string, appendOriginRegistry bool, containerTargetAuth *api.Containers_ContainerAuth) *mover.ChartMoveRequest {
 	req := &mover.ChartMoveRequest{
 		Source: mover.Source{
 			Chart: mover.ChartSpec{
@@ -401,11 +402,12 @@ func relok8sBundleLoadReq(sourcePath, targetPath, containerRegistry, containerRe
 		},
 		Target: mover.Target{
 			Rules: mover.RewriteRules{
-				Registry:         containerRegistry,
-				PrefixRegistry:   containerPrefixRegistry,
-				Repository:       containerRepository,
-				PrefixRepository: containerPrefixRepository,
-				ForcePush:        true,
+				Registry:             containerRegistry,
+				PrefixRegistry:       containerPrefixRegistry,
+				AppendOriginRegistry: appendOriginRegistry,
+				Repository:           containerRepository,
+				PrefixRepository:     containerPrefixRepository,
+				ForcePush:            true,
 			},
 			Chart: mover.ChartSpec{
 				Local: &mover.LocalChart{

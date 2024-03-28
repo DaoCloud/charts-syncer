@@ -55,6 +55,7 @@ message Target {
     string container_prefix_registry = 7;
     string container_repository = 3;
     string container_prefix_repository = 8;
+    bool   append_origin_registry = 9;
     string repo_name = 4;
 
     Containers containers = 6;

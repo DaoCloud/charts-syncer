@@ -17,10 +17,11 @@ import (
 )
 
 type OCIImageLocation struct {
-	Registry         string
-	PrefixRegistry   string
-	Repository       string
-	PrefixRepository string
+	Registry             string
+	PrefixRegistry       string
+	Repository           string
+	PrefixRepository     string
+	AppendOriginRegistry bool
 }
 type RewriteAction struct {
 	Path  string `json:"path"`
@@ -195,17 +196,25 @@ func (t *ImageTemplate) Apply(originalImage name.Repository, imageDigest string,
 	var rewrites []*RewriteAction
 
 	registry := originalImage.Registry.Name()
-	if rules.PrefixRegistry != "" {
+	switch {
+	case rules.PrefixRegistry != "" && rules.AppendOriginRegistry:
+		registry = fmt.Sprintf("%s/%s", rules.PrefixRegistry, registry)
+	case rules.PrefixRegistry != "":
 		registry = rules.PrefixRegistry
-	} else if rules.Registry != "" {
+	case rules.Registry != "":
 		registry = rules.Registry
 	}
 
 	// Repository path should contain the repositoryPrefix + imageName
 	repository := originalImage.RepositoryStr()
 	switch {
+	case rules.AppendOriginRegistry && rules.PrefixRegistry != "":
+	case rules.AppendOriginRegistry && rules.PrefixRepository != "" && rules.PrefixRegistry != "":
+		fallthrough
+	case rules.AppendOriginRegistry && rules.PrefixRepository != "":
+		repository = fmt.Sprintf("%s/%s", rules.PrefixRepository, repository)
 	case rules.PrefixRepository != "" && rules.PrefixRegistry != "":
-		repository = fmt.Sprintf("%s/%s/%s", rules.PrefixRepository, originalImage.Registry.Name(), repository)
+		repository = fmt.Sprintf("%s/%s/%s", originalImage.Registry.Name(), rules.PrefixRepository, repository)
 	case rules.PrefixRepository != "":
 		repository = fmt.Sprintf("%s/%s", rules.PrefixRepository, repository)
 	case rules.PrefixRegistry != "":

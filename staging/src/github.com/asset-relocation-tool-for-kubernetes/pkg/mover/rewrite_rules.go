@@ -4,6 +4,7 @@
 package mover
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -20,6 +21,9 @@ type RewriteRules struct {
 	Repository string
 	// PrefixRegistry add prefix of the registry
 	PrefixRepository string
+	// AppendOriginRegistry when setting up a PrefixRegistry, ture means that the original registry is appended to the
+	// new registry, and fasle means that it is moved to the Repositoy field.
+	AppendOriginRegistry bool
 	// Push the image even if there is already an image with a different digest
 	ForcePush bool
 }
@@ -29,6 +33,10 @@ func (r *RewriteRules) Validate() error {
 		registry   string
 		repository string
 	)
+
+	if r.PrefixRegistry == "" && r.AppendOriginRegistry {
+		return errors.New("AppendOriginRegistry can only be set to ture if PrefixRegistry is set.")
+	}
 
 	switch {
 	case r.Registry != "" && r.PrefixRegistry != "":
