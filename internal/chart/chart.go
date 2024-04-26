@@ -18,11 +18,16 @@ var (
 
 // updateValuesFile performs some substitutions to a given values.yaml file.
 func updateValuesFile(valuesFile string, targetRepo *api.Target) error {
-	if err := updateContainerImageRegistry(valuesFile, targetRepo); err != nil {
-		return errors.Annotatef(err, "error updating %s file", valuesFile)
+	if targetRepo.ContainerRegistry != "" {
+		if err := updateContainerImageRegistry(valuesFile, targetRepo); err != nil {
+			return errors.Annotatef(err, "error updating %s file", valuesFile)
+		}
 	}
-	if err := updateContainerImageRepository(valuesFile, targetRepo); err != nil {
-		return errors.Annotatef(err, "error updating %s file", valuesFile)
+
+	if targetRepo.ContainerRepository != "" {
+		if err := updateContainerImageRepository(valuesFile, targetRepo); err != nil {
+			return errors.Annotatef(err, "error updating %s file", valuesFile)
+		}
 	}
 	return nil
 }
