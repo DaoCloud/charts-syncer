@@ -25,6 +25,9 @@ dist
 ### Editors/IDEs ###
 .vscode
 .idea
+.DS_Store
 
 ### Tests output
 pkg/syncer/workdir/
+
+charts-dir
