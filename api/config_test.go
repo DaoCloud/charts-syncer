@@ -45,3 +45,21 @@ func TestValidate(t *testing.T) {
 		}
 	}
 }
+
+func TestValidateLocalSource(t *testing.T) {
+	newConfig := func(path string) *api.Config {
+		return &api.Config{
+			Source: &api.Source{Spec: &api.Source_Repo{Repo: &api.Repo{Kind: api.Kind_LOCAL, Path: path}}},
+			Target: &api.Target{Spec: &api.Target_IntermediateBundlesPath{IntermediateBundlesPath: t.TempDir()}},
+		}
+	}
+
+	if err := newConfig(t.TempDir()).Validate(); err != nil {
+		t.Errorf("unexpected error for LOCAL source without url: %v", err)
+	}
+	for _, path := range []string{"", "/non/existent/dir"} {
+		if err := newConfig(path).Validate(); err == nil {
+			t.Errorf("expected error for LOCAL source path %q", path)
+		}
+	}
+}

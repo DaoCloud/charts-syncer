@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/url"
+	"os"
 
 	"github.com/pkg/errors"
 
@@ -11,8 +12,15 @@ import (
 // Validate validates the config file is correct
 func (c *Config) Validate() error {
 	if repo := c.GetSource().GetRepo(); repo != nil {
-		if _, err := url.ParseRequestURI(repo.GetUrl()); err != nil {
-			return errors.Errorf(`"source.repo.url" should be a valid URL: %v`, err)
+		switch repo.GetKind() {
+		case Kind_LOCAL:
+			if fi, err := os.Stat(repo.GetPath()); err != nil || !fi.IsDir() {
+				return errors.Errorf(`"source.repo.path" should be an existing directory: %q`, repo.GetPath())
+			}
+		default:
+			if _, err := url.ParseRequestURI(repo.GetUrl()); err != nil {
+				return errors.Errorf(`"source.repo.url" should be a valid URL: %v`, err)
+			}
 		}
 	}
 	if repo := c.GetTarget().GetRepo(); repo != nil {

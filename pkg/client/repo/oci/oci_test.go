@@ -1,11 +1,15 @@
 package oci_test
 
 import (
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"os"
 	"path"
 	"reflect"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 
@@ -54,6 +58,60 @@ func TestHas(t *testing.T) {
 	}
 	if !has {
 		t.Errorf("chart not found in index")
+	}
+}
+
+func TestHasAnonymousBearer(t *testing.T) {
+	manifest, err := os.ReadFile("../../../../testdata/oci/kafka-12.2.1-oci-manifest.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Mimics Harbor: anonymous pulls require a token from the token service
+	var srv *httptest.Server
+	srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		const scope = "repository:someproject/charts/kafka:pull"
+		switch {
+		case r.URL.Path == "/service/token":
+			if got := r.URL.Query().Get("scope"); got != scope {
+				t.Errorf("unexpected token scope %q", got)
+			}
+			fmt.Fprint(w, `{"token": "secret"}`)
+		case r.Header.Get("Authorization") != "Bearer secret":
+			w.Header().Set("Www-Authenticate", fmt.Sprintf(`Bearer realm="%s/service/token",service="harbor-registry",scope="%s"`, srv.URL, scope))
+			w.WriteHeader(http.StatusUnauthorized)
+		case r.URL.Path == "/v2/someproject/charts/kafka/manifests/12.2.1":
+			w.Write(manifest)
+		case strings.HasSuffix(r.URL.Path, "/tags/list"):
+			t.Errorf("tags must not be listed to check a single version")
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	t.Cleanup(srv.Close)
+
+	// A broken docker config must not prevent anonymous access
+	for desc, dockerConfig := range map[string]string{"no docker config": "", "broken docker config": "{not json"} {
+		t.Run(desc, func(t *testing.T) {
+			dir := t.TempDir()
+			if dockerConfig != "" {
+				if err := os.WriteFile(path.Join(dir, "config.json"), []byte(dockerConfig), 0644); err != nil {
+					t.Fatal(err)
+				}
+			}
+			t.Setenv("DOCKER_CONFIG", dir)
+
+			c := oci.PrepareTest(t, &api.Repo{Kind: api.Kind_OCI, Url: srv.URL + "/someproject/charts", DisableChartsIndex: true})
+			for version, want := range map[string]bool{"12.2.1": true, "9.9.9": false} {
+				has, err := c.Has("kafka", version)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if has != want {
+					t.Errorf("Has(kafka, %s) = %v, want %v", version, has, want)
+				}
+			}
+		})
 	}
 }
 

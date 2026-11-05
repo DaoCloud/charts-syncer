@@ -220,12 +220,11 @@ or a pointer to a [charts index file](#charts-index-for-oci-based-repositories) 
 By using a charts index file for OCI-Based repository you won't need to maintain a hardcoded list of chart names in the config file.
 charts-syncer will be able to auto-discover what charts need to be synchronized.
 
-By default, the library will look up for a "charts-index:latest" charts index artifact within the source OCI repository.
+The charts index is only used when the `chartsIndex` field is set, using the format `REGISTRY/PROJECT/[SUBPATH][:TAG|@sha256:DIGEST]`.
+Otherwise, charts-syncer does not look up any index, as registries such as Harbor do not host one.
 
-However, this can be customized using the `chartsIndex` field using the format `REGISTRY/PROJECT/[SUBPATH][:TAG|@sha256:DIGEST]`.
-
-For example, if your URL is `https://my-oci-registry.io/my-project/subpath` and no `chartsIndex` is specified, charts-syncer will try to use 
-`my-oci-registry.io/my-project/subpath/charts-index:latest` asset as index if it exists.
+For example, if your URL is `https://my-oci-registry.io/my-project/subpath`, the conventional index location is
+`my-oci-registry.io/my-project/subpath/charts-index:latest`.
 
 An example of the valid index format can be seen directly in its [Protobuf definition](internal/indexer/api/index.proto). Worth to mention 
 that the format of the charts index for OCI repositories is a custom one, not a traditional Helm index file.
@@ -235,8 +234,7 @@ source:
  repo:
    kind: OCI
    url: https://my-oci-registry.io/my-project/subpath
-   # disableChartsIndex: true
-   # Charts index location override, charts-index:latest by default
+   # Charts index location, no index is used if not set
    chartsIndex: my-oci-registry.io/my-project/my-custom-index:prod
 ~~~
 

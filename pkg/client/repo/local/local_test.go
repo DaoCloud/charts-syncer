@@ -2,6 +2,7 @@ package local_test
 
 import (
 	"os"
+	"path/filepath"
 	"reflect"
 	"sort"
 	"testing"
@@ -9,6 +10,7 @@ import (
 	"github.com/bitnami-labs/charts-syncer/pkg/client/repo/local"
 	"github.com/bitnami-labs/charts-syncer/pkg/client/types"
 	"helm.sh/helm/v3/pkg/chart"
+	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/time"
 )
 
@@ -92,6 +94,50 @@ func TestGetChartDetails(t *testing.T) {
 	}
 	if want.Digest != got.Digest {
 		t.Errorf("unexpected digest in chart. got: %v, want: %v", got, want)
+	}
+}
+
+func TestNewReadsChartMetadata(t *testing.T) {
+	dir := t.TempDir()
+	for _, md := range []*chart.Metadata{
+		{APIVersion: "v2", Name: "kubean", Version: "v0.40.0"},
+		{APIVersion: "v2", Name: "ghippo", Version: "0.50.0-rc2"},
+		{APIVersion: "v2", Name: "app-1.2.3-beta", Version: "0.1.0"},
+	} {
+		if _, err := chartutil.Save(&chart.Chart{Metadata: md}, dir); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// File names must not matter
+	if err := os.Rename(filepath.Join(dir, "ghippo-0.50.0-rc2.tgz"), filepath.Join(dir, "renamed.tgz")); err != nil {
+		t.Fatal(err)
+	}
+	// Non-chart packages must be skipped
+	if err := os.WriteFile(filepath.Join(dir, "broken.tgz"), []byte("not a chart"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	c, err := local.New(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for name, version := range map[string]string{"kubean": "v0.40.0", "ghippo": "0.50.0-rc2", "app-1.2.3-beta": "0.1.0"} {
+		got, err := c.ListChartVersions(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !reflect.DeepEqual(got, []string{version}) {
+			t.Errorf("unexpected versions for %q. got: %v, want: [%s]", name, got, version)
+		}
+		if _, err := c.Fetch(name, version); err != nil {
+			t.Errorf("unexpected error fetching %s-%s: %v", name, version, err)
+		}
+	}
+	if p, _ := c.Fetch("ghippo", "0.50.0-rc2"); filepath.Base(p) != "renamed.tgz" {
+		t.Errorf("unexpected path for ghippo. got: %q", p)
+	}
+	if _, err := c.Fetch("kubean", "v9.9.9"); err == nil {
+		t.Errorf("expected error fetching a missing chart")
 	}
 }
 

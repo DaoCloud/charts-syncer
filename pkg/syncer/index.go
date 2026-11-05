@@ -116,29 +116,32 @@ func (s *Syncer) loadCharts(charts ...*api.Charts) error {
 			continue
 		}
 
-		versions, err := s.cli.src.ListChartVersions(chart.Name)
+		versions, err := s.listChartVersions(chart)
 		if err != nil {
 			errs = multierror.Append(errs, errors.Trace(err))
 			continue
 		}
 
-		if specifiedCharts && s.verify {
-			source := s.source.GetIntermediateBundlesPath()
-			if len(source) == 0 {
-				source = s.source.GetRepo().Url
-			}
+		source := s.source.GetIntermediateBundlesPath()
+		if len(source) == 0 {
+			source = s.source.GetRepo().GetUrl()
+		}
+		if len(source) == 0 {
+			source = s.source.GetRepo().GetPath()
+		}
 
-			if len(versions) == 0 {
-				return errors.Trace(fmt.Errorf("chart %s in %s does not exist", chart.Name, source))
+		if specifiedCharts && s.verify && len(versions) == 0 && len(chart.Versions) == 0 {
+			return errors.Errorf("chart %s in %s does not exist", chart.Name, source)
+		}
+		if ver, ok := verifyChartsVersion(chart.Versions, versions); !ok && (s.verify || !s.latestVersionOnly) {
+			err := errors.Errorf("version %s of chart %s in %s does not exist", strings.Join(ver, ","), chart.Name, source)
+			if s.verify {
+				return err
 			}
-
-			if ver, ok := verifyChartsVersion(chart.Versions, versions); !ok {
-				if len(ver) > 1 {
-					return errors.Trace(fmt.Errorf("versions %s of chart %s in %s do not exist", strings.Join(ver, ","), chart.Name, source))
-				} else {
-					return errors.Trace(fmt.Errorf("version %s of chart %s in %s does not exist", strings.Join(ver, ","), chart.Name, source))
-				}
-			}
+			errs = multierror.Append(errs, err)
+		}
+		// Verify-only mode does not index the charts
+		if specifiedCharts && s.verify && !s.renderOnly {
 			continue
 		}
 
@@ -185,6 +188,25 @@ func (s *Syncer) loadCharts(charts ...*api.Charts) error {
 	return errors.Trace(errs)
 }
 
+// listChartVersions returns the versions of a chart in the source repo. If the versions are specified,
+// only those are checked, so sources such as OCI registries do not need to inspect every tag.
+func (s *Syncer) listChartVersions(chart *api.Charts) ([]string, error) {
+	if len(chart.Versions) == 0 || s.latestVersionOnly {
+		return s.cli.src.ListChartVersions(chart.Name)
+	}
+	versions := []string{}
+	for _, v := range chart.Versions {
+		ok, err := s.cli.src.Has(chart.Name, v)
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
+		if ok {
+			versions = append(versions, v)
+		}
+	}
+	return versions, nil
+}
+
 // processVersion takes care of loading a specific version of the chart into the index
 func (s *Syncer) processVersion(name, version string, skipImages bool, publishingThreshold time.Time) error {
 	details, err := s.cli.src.GetChartDetails(name, version)
@@ -199,12 +221,14 @@ func (s *Syncer) processVersion(name, version string, skipImages bool, publishin
 		return nil
 	}
 
-	if ok, err := s.cli.dst.Has(name, version); err != nil {
-		klog.Errorf("unable to explore target repo to check %q chart: %v", id, err)
-		return err
-	} else if ok {
-		klog.V(5).Infof("Skipping %q chart: Already synced", id)
-		return nil
+	if !s.renderOnly {
+		if ok, err := s.cli.dst.Has(name, version); err != nil {
+			klog.Errorf("unable to explore target repo to check %q chart: %v", id, err)
+			return err
+		} else if ok {
+			klog.V(5).Infof("Skipping %q chart: Already synced", id)
+			return nil
+		}
 	}
 
 	if ch := s.getIndex().Get(id); ch != nil {
@@ -242,11 +266,13 @@ func (s *Syncer) loadChart(name string, version string, skipImages bool) error {
 	}
 	// In the same way, dependencies may already exist in the target chart
 	// repository.
-	if ok, err := s.cli.dst.Has(name, version); err != nil {
-		return errors.Errorf("unable to explore target repo to check %q chart: %v", id, err)
-	} else if ok {
-		klog.V(5).Infof("Skipping %q chart: Already synced", id)
-		return nil
+	if !s.renderOnly {
+		if ok, err := s.cli.dst.Has(name, version); err != nil {
+			return errors.Errorf("unable to explore target repo to check %q chart: %v", id, err)
+		} else if ok {
+			klog.V(5).Infof("Skipping %q chart: Already synced", id)
+			return nil
+		}
 	}
 
 	tgz, err := s.cli.src.Fetch(name, version)

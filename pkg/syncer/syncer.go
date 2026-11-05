@@ -45,6 +45,8 @@ type Syncer struct {
 	platform             v1.Platform
 	verify               bool
 	skipImages           bool
+	// renderOnly is set when only rendering images, so charts already in the target are not skipped
+	renderOnly bool
 
 	// TODO(jdrios): Cache index in local filesystem to speed
 	// up re-runs
