@@ -3,6 +3,7 @@ package syncer
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -58,7 +59,7 @@ func (s *Syncer) SyncPendingCharts(chs ...*api.Charts) error {
 		klog.Infof("There is %d chart out of sync!", len(charts))
 	} else {
 		klog.Info("There are no charts out of sync!")
-		return nil
+		return errors.Trace(errs)
 	}
 
 	for _, ch := range charts {
@@ -281,6 +282,7 @@ func (s *Syncer) SyncWithChartsSyncer(ch *Chart, id, workdir, outdir string, has
 }
 
 func (s *Syncer) GetRenderedImages(chs ...*api.Charts) ([]string, error) {
+	s.renderOnly = true
 	err := s.loadCharts(chs...)
 	if err != nil {
 		return nil, err
@@ -300,8 +302,10 @@ func (s *Syncer) GetRenderedImages(chs ...*api.Charts) ([]string, error) {
 		if err != nil {
 			return nil, err
 		}
+		defer os.RemoveAll(outdir)
 		req, _ := getRelok8sMoveRequest(s.source, s.target, ch, outdir)
-		chartMover, err := mover.NewChartMover(req, mover.WithInsecure(s.insecure), mover.WithPlatform(s.platform))
+		// Keep stdout for the images list only
+		chartMover, err := mover.NewChartMover(req, mover.WithInsecure(s.insecure), mover.WithPlatform(s.platform), mover.WithLogger(log.New(os.Stderr, "", 0)))
 		if err != nil {
 			return nil, errors.Trace(err)
 		}

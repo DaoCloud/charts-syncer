@@ -56,6 +56,7 @@ type Repo struct {
 	entries        map[string][]string
 	cache          cache.Cacher
 	dockerResolver remotes.Resolver
+	authorizer     docker.Authorizer
 }
 
 // Tags contains the tags for a specific OCI artifact
@@ -67,7 +68,7 @@ type Tags struct {
 // New creates a Repo object from an api.Repo object.
 func New(repo *api.Repo, c cache.Cacher, insecure bool) (*Repo, error) {
 	// Init entries
-	entries, err := populateEntries(repo)
+	entries, err := populateEntries(repo, insecure)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -83,7 +84,87 @@ func New(repo *api.Repo, c cache.Cacher, insecure bool) (*Repo, error) {
 
 // NewRaw creates a Repo object.
 func NewRaw(u *url.URL, user string, pass string, c cache.Cacher, insecure bool, entries map[string][]string, resolver remotes.Resolver) (*Repo, error) {
-	return &Repo{url: u, username: user, password: pass, cache: c, insecure: insecure, entries: entries, dockerResolver: resolver}, nil
+	return &Repo{url: u, username: user, password: pass, cache: c, insecure: insecure, entries: entries, dockerResolver: resolver, authorizer: newAuthorizer(user, pass, insecure)}, nil
+}
+
+// newAuthorizer returns an authorizer that resolves the registry auth challenges, such as the token
+// exchange that Harbor requires even for anonymous pulls. Without configured credentials, the docker
+// config file is used, falling back to anonymous access.
+func newAuthorizer(username, password string, insecure bool) docker.Authorizer {
+	client := utils.DefaultClient
+	if insecure {
+		client = utils.InsecureClient
+	}
+	return docker.NewDockerAuthorizer(
+		docker.WithAuthClient(client),
+		docker.WithAuthCreds(func(host string) (string, string, error) {
+			if username != "" && password != "" {
+				return username, password, nil
+			}
+			reg, err := name.NewRegistry(host)
+			if err != nil {
+				return "", "", errors.Trace(err)
+			}
+			var cfg *authn.AuthConfig
+			a, err := authn.DefaultKeychain.Resolve(reg)
+			if err == nil {
+				cfg, err = a.Authorization()
+			}
+			if err != nil {
+				klog.Warningf("Unable to read the docker credentials for %q, using anonymous access: %v", host, err)
+				return "", "", nil
+			}
+			return cfg.Username, cfg.Password, nil
+		}))
+}
+
+// authTransport retries a request once after a 401 response, once the authorizer has handled the challenge
+type authTransport struct {
+	inner      http.RoundTripper
+	authorizer docker.Authorizer
+	scope      string
+}
+
+func (t *authTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	ctx := docker.WithScope(req.Context(), t.scope)
+	authorized := func() (*http.Request, error) {
+		r := req.Clone(ctx)
+		return r, t.authorizer.Authorize(ctx, r)
+	}
+
+	r, err := authorized()
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	resp, err := t.inner.RoundTrip(r)
+	if err != nil || resp.StatusCode != http.StatusUnauthorized {
+		return resp, err
+	}
+	if err := t.authorizer.AddResponses(ctx, []*http.Response{resp}); err != nil {
+		klog.Warningf("Unable to handle the auth challenge from %s: %v", req.URL, err)
+		return resp, nil
+	}
+	resp.Body.Close()
+
+	if r, err = authorized(); err != nil {
+		return nil, errors.Trace(err)
+	}
+	return t.inner.RoundTrip(r)
+}
+
+// httpClient returns a client that authenticates the read requests against a chart repository
+func (r *Repo) httpClient(chartName string) *http.Client {
+	base := utils.DefaultClient
+	if r.insecure {
+		base = utils.InsecureClient
+	}
+	scope := fmt.Sprintf("repository:%s:pull", strings.Trim(path.Join(r.url.Path, chartName), "/"))
+	return &http.Client{Transport: &authTransport{inner: base.Transport, authorizer: r.authorizer, scope: scope}}
+}
+
+// ociTag returns the OCI tag of a chart version, as Helm replaces "+" with "_" since "+" is not allowed in tags
+func ociTag(version string) string {
+	return strings.ReplaceAll(version, "+", "_")
 }
 
 // List lists all chart names in a repo
@@ -108,7 +189,7 @@ func (r *Repo) getTagManifest(name, version string) (*ocispec.Manifest, error) {
 
 	u := *r.url
 	// Form API endpoint URL from repo url
-	u.Path = path.Join("v2", u.Path, name, "manifests", version)
+	u.Path = path.Join("v2", u.Path, name, "manifests", ociTag(version))
 	req, err := http.NewRequestWithContext(ctx, "GET", u.String(), nil)
 	req.Header.Set("Accept", ImageManifestMediaType)
 
@@ -118,11 +199,7 @@ func (r *Repo) getTagManifest(name, version string) (*ocispec.Manifest, error) {
 	if r.username != "" && r.password != "" {
 		req.SetBasicAuth(r.username, r.password)
 	}
-	client := utils.DefaultClient
-	if r.insecure {
-		client = utils.InsecureClient
-	}
-	resp, err := client.Do(req)
+	resp, err := r.httpClient(name).Do(req)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -132,6 +209,9 @@ func (r *Repo) getTagManifest(name, version string) (*ocispec.Manifest, error) {
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, errors.Errorf("unexpected response — %d %q — from %s", status, http.StatusText(status), u.String())
+	}
+	if status == http.StatusNotFound {
+		return nil, errors.NotFoundf("%s:%s manifest", name, version)
 	}
 	if status != http.StatusOK {
 		return nil, errors.Errorf("unexpected response — %d %q, %s — from %s", status, http.StatusText(status), string(body), u.String())
@@ -179,11 +259,7 @@ func (r *Repo) ListChartVersions(name string) ([]string, error) {
 	if r.username != "" && r.password != "" {
 		req.SetBasicAuth(r.username, r.password)
 	}
-	client := utils.DefaultClient
-	if r.insecure {
-		client = utils.InsecureClient
-	}
-	resp, err := client.Do(req)
+	resp, err := r.httpClient(name).Do(req)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -216,7 +292,7 @@ func (r *Repo) ListChartVersions(name string) ([]string, error) {
 			return nil, errors.Trace(err)
 		}
 		if tm.Config.MediaType == HelmChartConfigMediaType {
-			chartTags = append(chartTags, tag)
+			chartTags = append(chartTags, strings.ReplaceAll(tag, "_", "+"))
 		} else {
 			klog.V(5).Infof("Skipping %q tag as it is not chart type", tag)
 		}
@@ -257,6 +333,7 @@ func (r *Repo) Fetch(name string, version string) (string, error) {
 		utils.WithFetchInsecure(r.insecure),
 		utils.WithFetchStatusHandler(statusHandlerFn),
 		utils.WithFetchURLBuilder(r.GetDownloadURL),
+		utils.WithFetchHTTPClient(r.httpClient(name)),
 	}
 	chartPath, err := utils.FetchAndCache(name, version, r.cache, fetchOpts...)
 	if err != nil {
@@ -268,16 +345,23 @@ func (r *Repo) Fetch(name string, version string) (string, error) {
 
 // Has checks if a repo has a specific chart
 func (r *Repo) Has(name string, version string) (bool, error) {
-	versions, err := r.ListChartVersions(name)
+	if versions, ok := r.entries[name]; ok {
+		for _, v := range versions {
+			if v == version {
+				return true, nil
+			}
+		}
+		return false, nil
+	}
+	// Check the tag manifest directly instead of listing all the tags
+	tm, err := r.getTagManifest(name, version)
+	if errors.IsNotFound(err) {
+		return false, nil
+	}
 	if err != nil {
 		return false, errors.Trace(err)
 	}
-	for _, v := range versions {
-		if v == version {
-			return true, nil
-		}
-	}
-	return false, nil
+	return tm.Config.MediaType == HelmChartConfigMediaType, nil
 }
 
 func (r *Repo) CreateRepository(repository string) error {
@@ -401,17 +485,21 @@ func ociReferenceExists(ociRef, username, password string) (bool, error) {
 }
 
 // populateEntries populates the entries map with the info from the charts index
-func populateEntries(repo *api.Repo) (map[string][]string, error) {
+func populateEntries(repo *api.Repo, insecure bool) (map[string][]string, error) {
 	if repo.GetDisableChartsIndex() {
 		return make(map[string][]string), nil
 	}
 
 	klog.Infof("Attempting to retrieve remote index...")
-	ind, err := indexer.NewOciIndexer(
+	opts := []indexer.OciIndexerOpt{
 		indexer.WithHost(repo.GetUrl()),
 		indexer.WithBasicAuth(repo.GetAuth().GetUsername(), repo.GetAuth().GetPassword()),
 		indexer.WithIndexRef(repo.GetChartsIndex()),
-	)
+	}
+	if insecure {
+		opts = append(opts, indexer.WithInsecure())
+	}
+	ind, err := indexer.NewOciIndexer(opts...)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}

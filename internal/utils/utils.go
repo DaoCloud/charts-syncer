@@ -328,6 +328,7 @@ type fetchOptions struct {
 	insecure        bool
 	statusHandlerFn statusHandler
 	urlBuilderFn    urlBuilder
+	client          *http.Client
 }
 
 type FetchOption func(opts *fetchOptions)
@@ -364,6 +365,13 @@ func WithFetchStatusHandler(h statusHandler) FetchOption {
 func WithFetchURLBuilder(h urlBuilder) FetchOption {
 	return func(opts *fetchOptions) {
 		opts.urlBuilderFn = h
+	}
+}
+
+// WithFetchHTTPClient configures the HTTP client for fetch operations, overriding the insecure option
+func WithFetchHTTPClient(c *http.Client) FetchOption {
+	return func(opts *fetchOptions) {
+		opts.client = c
 	}
 }
 
@@ -411,6 +419,9 @@ func FetchAndCache(name, version string, cache cache.Cacher, fopts ...FetchOptio
 	client := DefaultClient
 	if opts.insecure {
 		client = InsecureClient
+	}
+	if opts.client != nil {
+		client = opts.client
 	}
 
 	res, err := client.Do(req)

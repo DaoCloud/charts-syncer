@@ -60,6 +60,10 @@ func Load(config *api.Config) error {
 
 func setDefaultOverrides(config *api.Config) error {
 	if repo := config.GetSource().GetRepo(); repo != nil {
+		// OCI registries such as Harbor do not host a charts index unless it is explicitly configured
+		if repo.Kind == api.Kind_OCI && repo.GetChartsIndex() == "" {
+			repo.DisableChartsIndex = true
+		}
 		if !repo.GetDisableChartsIndex() && repo.GetChartsIndex() == "" {
 			if err := setDefaultChartsIndex(config); err != nil {
 				return err
